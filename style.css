@@ -285,6 +285,8 @@ select {
   width: 18px; height: 18px; min-width: 18px; margin-top: 1px; accent-color: var(--navy);
 }
 .excl-label span { flex: 1; }
+.excl-custom { background: var(--gray-50); border-radius: var(--radius-xs); padding: 8px 10px; }
+.excl-add-row { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
 
 .section-title {
   font-size: 0.8125rem; font-weight: 700; color: var(--navy);

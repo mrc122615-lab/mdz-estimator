@@ -104,6 +104,7 @@ function freshState() {
     drawCost: '',
     notes: '',
     removed: [],
+    customExcl: [],
     history: []
   };
 }
@@ -727,13 +728,23 @@ function renderReview() {
 
       <div class="review-card">
         <div class="section-title">Exclusions</div>
-        <p class="field-note" style="margin-bottom:10px">Uncheck any that don't apply to this job.</p>
+        <p class="field-note" style="margin-bottom:10px">Uncheck any that don't apply. Add custom exclusions below.</p>
         <div class="exclusion-list">
           ${excl.map((e,i)=>`
             <label class="excl-label">
               <input type="checkbox" ${!S.removed.includes(i)?'checked':''} onchange="toggleExcl(${i})">
               <span>${e}</span>
             </label>`).join('')}
+          ${S.customExcl.map((e,i)=>`
+            <div class="excl-label excl-custom">
+              <span style="flex:1">${esc(e)}</span>
+              <button class="btn-remove" style="margin-left:8px" onclick="removeCustomExcl(${i})">✕</button>
+            </div>`).join('')}
+        </div>
+        <div class="excl-add-row">
+          <input type="text" id="excl-input" placeholder="Type a custom exclusion…" style="flex:1"
+            onkeydown="if(event.key==='Enter')addCustomExcl()">
+          <button class="btn-primary" style="white-space:nowrap;padding:12px 16px" onclick="addCustomExcl()">+ Add</button>
         </div>
       </div>
 
@@ -793,6 +804,21 @@ function toggleExcl(i) {
   save();
 }
 
+function addCustomExcl() {
+  const input = document.getElementById('excl-input');
+  const val = (input?.value || '').trim();
+  if (!val) { toast('Type an exclusion first'); return; }
+  S.customExcl.push(val);
+  save();
+  render();
+}
+
+function removeCustomExcl(i) {
+  S.customExcl.splice(i, 1);
+  save();
+  render();
+}
+
 function finalize() {
   localStorage.setItem('mdz-last-num', S.num);
   go('proposal');
@@ -814,7 +840,7 @@ function totalB()    { return totalMat()+totalLab()+totalDraw()+(parseFloat(S.pe
 
 function renderProposal() {
   const isA  = S.mode==='A';
-  const excl = (isA?EXCL_A:EXCL_B).filter((_,i)=>!S.removed.includes(i));
+  const excl = [...(isA?EXCL_A:EXCL_B).filter((_,i)=>!S.removed.includes(i)), ...S.customExcl];
   const resp = isA?RESP_A:RESP_B;
   const total= isA?totalA():totalB();
   const title= isA?'Professional Services Proposal':'Electrical Service Installation Proposal';
