@@ -293,76 +293,174 @@ select {
   text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;
 }
 
-/* === PROPOSAL === */
+/* === PROPOSAL SHARED === */
 .proposal-wrapper { background: white; min-height: 100vh; }
 .proposal-toolbar {
   position: sticky; top: 0; background: var(--gray-100);
   border-bottom: 1px solid var(--gray-200);
   padding: 12px 16px; display: flex;
   justify-content: space-between; align-items: center;
-  z-index: 10; max-width: 100%;
+  z-index: 10;
 }
-.proposal-doc {
+
+/* =====================================================
+   MDZ TEMPLATE (Mode A — Professional Services)
+   ===================================================== */
+.mdz-doc {
   padding: 32px 24px; max-width: 760px; margin: 0 auto;
+  font-family: 'Times New Roman', Times, serif;
   font-size: 0.9375rem; line-height: 1.65; color: #111827;
 }
 
-.prop-cover {
-  text-align: center; padding: 48px 0 40px;
-  border-bottom: 2px solid #0a1628; margin-bottom: 36px;
+/* Footer bar shown on screen only */
+.mdz-page-footer {
+  font-size: 10px; color: #666; text-align: center;
+  border-top: 1px solid #ccc; padding: 6px 0;
+  margin-bottom: 24px;
 }
-.prop-cover-eyebrow {
-  font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 2px; color: #c9a84c; margin-bottom: 14px;
-}
-.prop-cover-title {
-  font-size: 1.5rem; font-weight: 800; color: #0a1628;
-  text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 28px; line-height: 1.3;
-}
-.prop-cover-for { font-size: 0.8125rem; color: #6b7280; margin-bottom: 6px; }
-.prop-cover-client { font-size: 1.25rem; font-weight: 700; color: #0a1628; margin-bottom: 4px; }
-.prop-cover-address { color: #4b5563; font-size: 0.9375rem; white-space: pre-line; }
-.prop-cover-meta {
-  display: flex; justify-content: center; gap: 32px;
-  font-size: 0.875rem; color: #6b7280; margin-top: 28px;
-  border-top: 1px solid #e5e7eb; padding-top: 20px;
-}
-.prop-cover-meta span { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.prop-cover-meta strong { color: #0a1628; font-weight: 700; }
 
-.prop-sec { margin-bottom: 28px; }
-.prop-sec-title {
-  font-size: 0.75rem; font-weight: 800; text-transform: uppercase;
-  letter-spacing: 1.5px; color: #c9a84c;
-  border-bottom: 1.5px solid #e5e7eb; padding-bottom: 6px; margin-bottom: 12px;
+/* Cover page */
+.mdz-cover {
+  text-align: center;
+  padding: 48px 0 40px;
+  margin-bottom: 36px;
 }
-.prop-company-name { font-weight: 700; font-size: 1rem; margin-bottom: 4px; }
-.prop-company-detail { font-size: 0.875rem; color: #4b5563; line-height: 1.8; }
+.mdz-page-break-after { page-break-after: always; break-after: page; }
 
-.prop-list { padding-left: 20px; margin: 8px 0; }
-.prop-list li { margin-bottom: 5px; font-size: 0.9375rem; line-height: 1.6; }
+.mdz-logo-wrap { margin-bottom: 24px; }
+.mdz-logo-wrap svg { width: 120px; height: auto; }
 
-.prop-table { width: 100%; border-collapse: collapse; font-size: 0.9375rem; margin-top: 8px; }
-.prop-table th {
-  background: #0a1628; color: white; padding: 10px 12px;
-  text-align: left; font-size: 0.75rem; font-weight: 700;
+.mdz-cover-title {
+  font-size: 1.375rem; font-weight: 800; color: #0a1628;
   text-transform: uppercase; letter-spacing: 0.5px;
+  margin-bottom: 32px; line-height: 1.3;
 }
-.prop-table th:last-child { text-align: right; }
-.prop-table td { padding: 10px 12px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
-.prop-table tbody tr:nth-child(even) td { background: #f9fafb; }
-.td-basis { color: #6b7280; font-size: 0.875rem; width: 32%; }
-.td-amount { text-align: right; font-weight: 600; white-space: nowrap; width: 14%; }
-.prop-table tfoot td {
-  background: #f3f4f6 !important; border-top: 2px solid #0a1628;
-  padding: 14px 12px; font-size: 1rem; font-weight: 700;
+.mdz-cover-prepared {
+  text-align: left; display: inline-block;
+  border: 1px solid #d1d5db; padding: 20px 28px;
+  border-radius: 4px; min-width: 280px;
 }
-.prop-table tfoot td:last-child { text-align: right; font-size: 1.125rem; color: #0a1628; }
+.mdz-cover-prepared p { margin-bottom: 4px; line-height: 1.6; font-size: 0.9375rem; }
 
-.sig-block { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; margin-top: 48px; }
-.sig-line { border-bottom: 1.5px solid #111; height: 52px; margin-bottom: 8px; }
-.sig-meta { font-size: 0.875rem; color: #4b5563; line-height: 1.7; }
-.sig-name-line { border-bottom: 1px solid #9ca3af; height: 36px; margin: 14px 0 4px; }
+/* Section headers — blue background */
+.mdz-section { margin-bottom: 28px; }
+.mdz-section-head {
+  background: #1a5ca8; color: white;
+  font-size: 0.8125rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1px; padding: 8px 12px; margin-bottom: 12px;
+  page-break-after: avoid; break-after: avoid;
+}
+
+/* Blue sub-headers (no background) */
+.mdz-sub-blue {
+  color: #1a5ca8; font-size: 0.9375rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.4px;
+  margin: 14px 0 6px; page-break-after: avoid; break-after: avoid;
+}
+
+.mdz-body { margin-bottom: 8px; font-size: 0.9375rem; line-height: 1.65; }
+
+/* Asterisk bullet lines */
+.mdz-bullet {
+  font-size: 0.9375rem; margin-bottom: 4px;
+  padding-left: 4px; line-height: 1.6;
+}
+
+/* Investment table — 2 columns only (Description | Amount) */
+.mdz-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 0.9375rem; margin-top: 8px;
+}
+.mdz-table-head td {
+  background: #1a5ca8; color: white;
+  font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.5px; padding: 9px 12px;
+}
+.mdz-td-label { padding: 9px 12px; border-bottom: 1px solid #e5e7eb; width: 70%; }
+.mdz-td-amount {
+  padding: 9px 12px; border-bottom: 1px solid #e5e7eb;
+  text-align: right; font-weight: 600; white-space: nowrap; width: 30%;
+}
+.mdz-total-row .mdz-td-label,
+.mdz-total-row .mdz-td-amount {
+  background: #f3f4f6; border-top: 2px solid #1a5ca8;
+  font-size: 1rem; padding: 12px;
+}
+
+/* Signature lines */
+.mdz-sig-line { border-bottom: 1.5px solid #111; height: 50px; margin: 24px 0 6px; max-width: 320px; }
+
+/* =====================================================
+   ANAMIK TEMPLATE (Mode B — Construction)
+   ===================================================== */
+.anamik-doc {
+  padding: 32px 24px; max-width: 760px; margin: 0 auto;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.9375rem; line-height: 1.65; color: #111;
+}
+
+.anamik-header { margin-bottom: 8px; }
+.anamik-header svg { width: 200px; height: auto; }
+
+.anamik-divider { border-top: 2px solid #6B1212; margin-bottom: 16px; }
+
+.anamik-doc-title {
+  font-size: 1.25rem; font-weight: 700; text-align: center;
+  margin-bottom: 20px; letter-spacing: 0.5px;
+}
+
+/* Customer / Project two-column block */
+.anamik-two-col {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+  margin-bottom: 20px;
+}
+.anamik-label { font-weight: 700; margin-bottom: 4px; font-size: 0.9375rem; }
+.anamik-addr  { font-size: 0.9375rem; line-height: 1.6; }
+
+/* Opening paragraph */
+.anamik-opening { margin-bottom: 16px; font-size: 0.9375rem; line-height: 1.65; }
+
+/* Payment schedule lines — bold */
+.anamik-pay-head {
+  font-weight: 700; margin-bottom: 4px; font-size: 0.9375rem;
+}
+.anamik-pay-item {
+  font-weight: 700; margin-bottom: 4px;
+  padding-left: 8px; font-size: 0.9375rem;
+}
+
+/* Section headings: bold + underline */
+.anamik-list-head {
+  font-weight: 700; text-decoration: underline;
+  margin: 16px 0 6px; font-size: 0.9375rem;
+  page-break-after: avoid; break-after: avoid;
+}
+
+/* Numbered lists */
+.anamik-list {
+  padding-left: 24px; margin-bottom: 12px;
+}
+.anamik-list li { margin-bottom: 4px; font-size: 0.9375rem; line-height: 1.6; }
+
+.anamik-body { margin-bottom: 12px; font-size: 0.9375rem; line-height: 1.65; }
+
+/* T&C paragraphs */
+.anamik-terms-para { margin-bottom: 10px; font-size: 0.875rem; line-height: 1.6; }
+
+/* APPROVED AND ACCEPTED */
+.anamik-accepted {
+  text-align: center; font-weight: 700; font-size: 1rem;
+  margin: 28px 0 20px; page-break-before: avoid; break-before: avoid;
+}
+
+/* Signature block — two columns */
+.anamik-sig-block {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 40px;
+  margin-top: 8px;
+}
+.anamik-sig-by   { font-size: 0.9375rem; margin-bottom: 2px; }
+.anamik-sig-line { border-bottom: 1px solid #333; height: 44px; margin-bottom: 6px; }
+.anamik-sig-name { font-size: 0.875rem; line-height: 1.5; margin-bottom: 2px; }
 
 /* === TOAST === */
 .toast {
@@ -379,16 +477,25 @@ select {
 /* === PRINT === */
 @media print {
   .no-print, .app-header, .proposal-toolbar { display: none !important; }
-  body { background: white; }
-  .proposal-doc { padding: 0; }
-  .prop-table { page-break-inside: avoid; }
-  .prop-sec { page-break-inside: avoid; }
-  .sig-block { page-break-inside: avoid; }
+  body { background: white; margin: 0; }
+
+  /* MDZ: fixed footer on every print page */
+  .mdz-doc { padding: 0; }
+  .mdz-page-footer { display: none; }
+  @page { margin: 0.75in 0.75in 1in 0.75in; }
+  .mdz-section { page-break-inside: avoid; break-inside: avoid; }
+  .mdz-table   { page-break-inside: avoid; break-inside: avoid; }
+  .mdz-sig-line { page-break-inside: avoid; break-inside: avoid; }
+
+  /* Anamik */
+  .anamik-doc { padding: 0; }
+  .anamik-sig-block { page-break-inside: avoid; break-inside: avoid; }
+  .anamik-list { page-break-inside: auto; }
 }
 
 /* === RESPONSIVE === */
-@media (max-width: 400px) {
+@media (max-width: 480px) {
   .form-row { grid-template-columns: 1fr; }
-  .sig-block { grid-template-columns: 1fr; gap: 28px; }
-  .prop-cover-meta { flex-direction: column; gap: 8px; }
+  .anamik-two-col { grid-template-columns: 1fr; gap: 12px; }
+  .anamik-sig-block { grid-template-columns: 1fr; gap: 24px; }
 }

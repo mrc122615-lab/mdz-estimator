@@ -80,6 +80,63 @@ const RESP_B = [
   'Timely payment per the agreed schedule so material can be ordered and the job kept on schedule'
 ];
 
+const COMPANY_B = {
+  name:    'Anamik Electric',
+  display: 'ANAMIK\nElectrical Consulting & Contracting'
+};
+
+const MDZ_LOGO = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 200" width="190" height="146">
+  <ellipse cx="122" cy="88" rx="96" ry="80" fill="#dce8f5" opacity="0.5"/>
+  <rect x="44" y="100" width="20" height="52" fill="#1a5ca8"/>
+  <rect x="69" y="77" width="24" height="75" fill="#1a5ca8"/>
+  <rect x="99" y="54" width="32" height="98" fill="#2265b8"/>
+  <rect x="138" y="67" width="26" height="85" fill="#1a5ca8"/>
+  <rect x="170" y="87" width="20" height="65" fill="#1a5ca8"/>
+  <rect x="34" y="112" width="18" height="40" fill="#1a5ca8"/>
+  <polygon points="34,112 43,97 52,112" fill="#1a5ca8"/>
+  <rect x="105" y="67" width="7" height="7" fill="white" opacity="0.7"/>
+  <rect x="118" y="67" width="7" height="7" fill="white" opacity="0.7"/>
+  <rect x="105" y="81" width="7" height="7" fill="white" opacity="0.7"/>
+  <rect x="118" y="81" width="7" height="7" fill="white" opacity="0.7"/>
+  <circle cx="152" cy="82" r="58" fill="none" stroke="#1a5ca8" stroke-width="7" opacity="0.6"/>
+  <line x1="198" y1="128" x2="223" y2="153" stroke="#1a5ca8" stroke-width="11" stroke-linecap="round" opacity="0.8"/>
+  <text x="130" y="178" text-anchor="middle" font-size="38" font-weight="900" fill="#1a5ca8" font-family="'Arial Black',Arial,sans-serif" letter-spacing="3">MDZ</text>
+  <text x="130" y="194" text-anchor="middle" font-size="9.5" fill="#555" font-family="Arial,sans-serif" letter-spacing="1.5">BUILDING INSPECTIONS &amp; CONSULTING</text>
+</svg>`;
+
+const ANAMIK_LOGO = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 310 78" width="290" height="73">
+  <rect x="0" y="2" width="72" height="72" rx="3" fill="#6B1212"/>
+  <circle cx="36" cy="30" r="16" fill="none" stroke="#e8b88a" stroke-width="3.5"/>
+  <line x1="36" y1="12" x2="36" y2="48" stroke="#e8b88a" stroke-width="3.5"/>
+  <line x1="25" y1="56" x2="47" y2="56" stroke="#e8b88a" stroke-width="3.5"/>
+  <line x1="36" y1="56" x2="36" y2="67" stroke="#e8b88a" stroke-width="3.5"/>
+  <text x="88" y="37" font-size="27" font-weight="bold" fill="#1a1a1a" font-family="Georgia,'Times New Roman',serif" letter-spacing="1">ANAMIK</text>
+  <text x="88" y="57" font-size="13" fill="#333" font-family="Georgia,'Times New Roman',serif">Electrical Consulting &amp; Contracting</text>
+</svg>`;
+
+const ANAMIK_GC = [
+  'Anamik Electric shall not be held liable for errors or omissions in designs by others, nor inadequacies of materials and equipment specified or supplied by others.',
+  'Equipment and material supplied by Anamik Electric are warranted up to one year from completion date or to the extent that the same are warranted by the manufacturer. Lamps are warranted 90 days.',
+  'Anamik Electric shall not be held liable for indirect loss or damage.',
+  'Unless included in this proposal, all bonding and/or special insurance requirements are supplied at additional costs.',
+  'If a formal contract is required, its conditions must not deviate from this proposal without the permission of Anamik Electric.',
+  'Anything (verbal or written) expressed or implied elsewhere, which is contrary to these conditions, shall be null and void.',
+  'Due to market conditions all material or items set forth in this contract proposal are subject to price increase through time of contract and subject to review every 10 (thirty) days, unless this proposal expressly states that pricing for any such products or items are firm and fixed.',
+  'Quoted price includes a 4% discount for the timely payment by cash or check.'
+];
+
+const ANAMIK_TERMS = [
+  'After goods are delivered and signed for, our responsibility ceases. The title to ownership of this material remains with Anamik Electric until bill is paid in full. There will be additional charges for any returned check.',
+  'In the event that Anamik Electric conducts trenching, Anamik Electric cannot be held responsible for any damage to underground systems (e.g. sprinklers, water pipes, phone, television or electrical cables, etc.)',
+  'Any costs incurred as a result of nonpayment of invoice including court costs and attorney\'s fees, plus legal rate of interest charged from date of billing, will be sustained by the customer.',
+  'The terms of this contract do not authorize overtime or change orders unless approved and signed by the general contractor or owner. Anamik Electric reserves the right to assess the cumulative impact of any changes to its work. Anamik Electric will not be responsible for job stoppage or disputes caused by other contractors.',
+  'The work described in this contract will be installed in a neat workmanlike manner in accordance with city and county codes. Any work to be performed not herein described including corrections of code violations is not part of this proposal and shall be performed on a time and material basis unless otherwise specified.',
+  'Whenever applicable, this contract shall serve as a waiver of notice or intention to claim a lien under the Florida statutes.',
+  'Either this contract proposal or the AIA Document A401-1997 is the only acceptable contract.',
+  'All payments shall be progressive payments during the course of the job based on work completed and/or time tickets. Payments must be made upon completion of the job. This proposal shall be deemed accepted only if signed and returned within five (5) days from the date of contract. After the expiration of said five (5) days, the acceptance of the proposal shall be optional with Anamik Electric.',
+  'We thank you for the opportunity to submit this quote, and hope we may have the privilege of completing this work for you. If accepted, please sign one copy of this proposal, noting the terms and conditions on the back, and return it to our office. This proposal is based upon our entering into a contract with you in a form that is mutually satisfactory. Permit fees and sales tax, if applicable, must be added to the above amount.'
+];
+
 // ============================================================
 // STATE
 // ============================================================
@@ -105,6 +162,13 @@ function freshState() {
     notes: '',
     removed: [],
     customExcl: [],
+    proposalTitle: '',
+    projectOverview: '',
+    opinionText: '',
+    projectAddress: '',
+    pay1: '',
+    pay2: '',
+    pay3: '',
     history: []
   };
 }
@@ -256,6 +320,12 @@ function renderClient() {
       <button class="btn-back" onclick="back()">← Back</button>
       <h2 class="step-title">Client & Proposal Info</h2>
 
+      ${S.mode==='A'?`
+      <div class="form-group">
+        <label>Proposal Title</label>
+        <input type="text" value="${esc(S.proposalTitle)}" placeholder="e.g. Electrical Service Equipment Evaluation Proposal"
+          oninput="S.proposalTitle=this.value;save()">
+      </div>`:''}
       <div class="form-group">
         <label>Proposal Number</label>
         <input type="text" value="${esc(S.num)}" placeholder="e.g. 1600"
@@ -346,6 +416,11 @@ function renderServices() {
         </div>
         <div class="calc-band" id="calc-${sv.id}">${calcHtml}</div>
         <div class="form-group">
+          <label>Scope Details <span class="label-note">one item per line → becomes bullet points in proposal</span></label>
+          <textarea rows="3" placeholder="* Perform a field inspection of the electrical service equipment&#10;* Review accessible panels, feeders, and related equipment&#10;* Document existing service characteristics…"
+            oninput="svcSet('${sv.id}','details',this.value)">${esc(sv.details||'')}</textarea>
+        </div>
+        <div class="form-group">
           <label>Your Confirmed Fee <span class="label-note">you set this</span></label>
           <div class="input-prefix">
             <span>$</span>
@@ -364,16 +439,21 @@ function renderServices() {
       ${cards}
       <button class="btn-add" onclick="addService();render()">+ Add Service</button>
       <div class="form-group" style="margin-top:20px">
-        <label>Scope Notes <span class="label-note">optional</span></label>
-        <textarea placeholder="Any additional scope details for the proposal..."
-          oninput="S.notes=this.value;save()">${esc(S.notes)}</textarea>
+        <label>Project Overview <span class="label-note">appears as PROJECT OVERVIEW paragraph in proposal</span></label>
+        <textarea rows="4" placeholder="Describe the situation and why this evaluation is needed…"
+          oninput="S.projectOverview=this.value;save()">${esc(S.projectOverview)}</textarea>
+      </div>
+      <div class="form-group">
+        <label>Professional Opinion Discussion <span class="label-note">optional — appears as a section in the proposal</span></label>
+        <textarea rows="3" placeholder="Professional opinion on the findings or concerns…"
+          oninput="S.opinionText=this.value;save()">${esc(S.opinionText)}</textarea>
       </div>
       <button class="btn-primary btn-full btn-mt" onclick="submitServices()">Review Estimate →</button>
     </div>`;
 }
 
 function addService() {
-  S.services.push({ id:'sv'+Date.now(), name:SERVICES_A[0], custom:'', hours:0, crew:'solo', fee:0 });
+  S.services.push({ id:'sv'+Date.now(), name:SERVICES_A[0], custom:'', details:'', hours:0, crew:'solo', fee:0 });
   save();
 }
 function svcRemove(id) { S.services=S.services.filter(s=>s.id!==id); save(); render(); }
@@ -427,6 +507,12 @@ function renderScope() {
           <option value=""${!S.scopeMount?' selected':''}>Select…</option>
           ${['Overhead / Weatherhead','Underground','Free-Standing / Self-Standing','Building-Mounted'].map(v=>`<option value="${v}"${S.scopeMount===v?' selected':''}>${v}</option>`).join('')}
         </select>
+      </div>
+
+      <div class="form-group">
+        <label>Project / Site Address <span class="label-note">where the work is performed</span></label>
+        <textarea rows="2" placeholder="Street, City, State ZIP"
+          oninput="S.projectAddress=this.value;save()">${esc(S.projectAddress)}</textarea>
       </div>
 
       <div class="form-group">
@@ -748,6 +834,8 @@ function renderReview() {
         </div>
       </div>
 
+      ${S.mode==='B' ? renderPaySchedule() : ''}
+
       <button class="btn-primary btn-full" onclick="finalize()">Generate Proposal →</button>
     </div>`;
 }
@@ -819,6 +907,39 @@ function removeCustomExcl(i) {
   render();
 }
 
+function renderPaySchedule() {
+  const total = totalB();
+  const matT  = totalMat();
+  const drawT = totalDraw();
+  const p1def = Math.round(matT + drawT);
+  const p3def = Math.round((total - p1def) * 0.10);
+  const p2def = total - p1def - p3def;
+  if (!S.pay1) { S.pay1 = p1def > 0 ? String(p1def) : ''; S.pay2 = p2def > 0 ? String(p2def) : ''; S.pay3 = p3def > 0 ? String(p3def) : ''; save(); }
+  return `
+    <div class="review-card">
+      <div class="section-title">Payment Schedule (Anamik Format)</div>
+      <p class="field-note" style="margin-bottom:12px">These appear in the contract proposal. Auto-calculated — edit as needed.</p>
+      <div class="form-group">
+        <label>Payment 1 — Up front (materials + plans)</label>
+        <div class="input-prefix"><span>$</span>
+          <input type="number" min="0" step="0.01" value="${S.pay1||''}" placeholder="0.00"
+            oninput="S.pay1=this.value;save()"></div>
+      </div>
+      <div class="form-group">
+        <label>Payment 2 — After installation</label>
+        <div class="input-prefix"><span>$</span>
+          <input type="number" min="0" step="0.01" value="${S.pay2||''}" placeholder="0.00"
+            oninput="S.pay2=this.value;save()"></div>
+      </div>
+      <div class="form-group">
+        <label>Payment 3 — 10% after Final Inspection</label>
+        <div class="input-prefix"><span>$</span>
+          <input type="number" min="0" step="0.01" value="${S.pay3||''}" placeholder="0.00"
+            oninput="S.pay3=this.value;save()"></div>
+      </div>
+    </div>`;
+}
+
 function finalize() {
   localStorage.setItem('mdz-last-num', S.num);
   go('proposal');
@@ -839,169 +960,275 @@ function totalB()    { return totalMat()+totalLab()+totalDraw()+(parseFloat(S.pe
 // ============================================================
 
 function renderProposal() {
-  const isA  = S.mode==='A';
-  const excl = [...(isA?EXCL_A:EXCL_B).filter((_,i)=>!S.removed.includes(i)), ...S.customExcl];
-  const resp = isA?RESP_A:RESP_B;
-  const total= isA?totalA():totalB();
-  const title= isA?'Professional Services Proposal':'Electrical Service Installation Proposal';
+  return S.mode === 'A' ? renderProposalMDZ() : renderProposalAnamik();
+}
 
-  const scopeContent = isA ? `
-    <p>${COMPANY.name} will provide the following professional services:</p>
-    <ul class="prop-list">
-      ${S.services.map(sv=>`<li>${esc(sv.name==='Custom...'?sv.custom:sv.name)}</li>`).join('')}
-    </ul>
-    ${S.notes?`<p style="margin-top:8px">${esc(S.notes)}</p>`:''}
-  ` : `
-    <p>${esc(S.scopeText)}</p>
-    ${(S.scopeSize||S.scopeMount||S.scopeSpaces)?`
-      <ul class="prop-list">
-        ${S.scopeSize?`<li>Service Size: ${esc(S.scopeSize)}</li>`:''}
-        ${S.scopeMount?`<li>Installation Type: ${esc(S.scopeMount)}</li>`:''}
-        ${S.scopeSpaces?`<li>Panel Spaces: ${esc(S.scopeSpaces)}</li>`:''}
-      </ul>`:''}
-    ${S.scopeNotes?`<p style="margin-top:8px">${esc(S.scopeNotes)}</p>`:''}
-    ${S.notes?`<p style="margin-top:8px">${esc(S.notes)}</p>`:''}
-  `;
+// ---------- NUMBER TO WORDS (for Anamik opening paragraph) ----------
+function numToWords(n) {
+  const ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine',
+                 'Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen',
+                 'Seventeen','Eighteen','Nineteen'];
+  const tens = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+  function h(num) {
+    if (num === 0) return '';
+    if (num < 20) return ones[num] + ' ';
+    if (num < 100) return tens[Math.floor(num/10)] + (num%10?' '+ones[num%10]+' ':' ');
+    return ones[Math.floor(num/100)] + ' Hundred ' + h(num%100);
+  }
+  const dollars = Math.floor(n);
+  const cents   = Math.round((n - dollars) * 100);
+  let words = '';
+  if (dollars >= 1000000) { words += h(Math.floor(dollars/1000000)) + 'Million '; }
+  if (dollars >= 1000)    { words += h(Math.floor((dollars%1000000)/1000)) + 'Thousand '; }
+  words += h(dollars % 1000);
+  words = words.trim();
+  return (words || 'Zero') + ' Dollars and ' + String(cents).padStart(2,'0') + '/100';
+}
 
-  const tableRows = isA
-    ? S.services.map(sv=>`
-        <tr>
-          <td>${esc(sv.name==='Custom...'?sv.custom:sv.name)}</td>
-          <td class="td-basis">${sv.hours} hrs @ $${sv.crew==='crew'?RATE_CREW:RATE_SOLO}/hr</td>
-          <td class="td-amount">$${fmt(sv.fee)}</td>
-        </tr>`).join('')
-    : `
-        ${S.materials.map(m=>{const mk=m.markup!=null?m.markup:S.markup,b=(m.cost||0)*(1+mk/100);return`
-          <tr><td>${esc(m.item||'Material')}</td>
-          <td class="td-basis">$${fmt(m.cost)} cost + ${mk}% markup</td>
-          <td class="td-amount">$${fmt(b)}</td></tr>`;}).join('')}
-        ${S.phases.map(p=>`
-          <tr><td>${esc(p.phase==='Custom...'?p.custom:p.phase)}</td>
-          <td class="td-basis">${p.hours} hrs @ $${p.crew==='solo'?RATE_SOLO:RATE_CREW}/hr</td>
-          <td class="td-amount">$${fmt(p.amount)}</td></tr>`).join('')}
-        ${totalDraw()>0?`
-          <tr><td>Drawings / Design</td>
-          <td class="td-basis">${S.drawType==='inhouse'?`${S.drawHours} hrs @ $${RATE_SOLO}/hr`:'Subcontracted — pass-through'}</td>
-          <td class="td-amount">$${fmt(totalDraw())}</td></tr>`:''}
-        <tr><td>Permit Fees (pass-through to client)</td>
-          <td class="td-basis">Per applicable jurisdiction</td>
-          <td class="td-amount">${S.permitFee?'$'+fmt(parseFloat(S.permitFee)):'[GET PERMIT FEE]'}</td></tr>`;
+// ---------- MDZ TEMPLATE (Mode A) ----------
+function renderProposalMDZ() {
+  const excl  = [...EXCL_A.filter((_,i)=>!S.removed.includes(i)), ...S.customExcl];
+  const total = totalA();
+  const half  = total / 2;
+  const title = S.proposalTitle ||
+    (S.services.map(sv=>sv.name==='Custom...'?sv.custom:sv.name).join(' & ') + ' Proposal');
+  const footer = `MDZ Building Inspections &amp; Consulting &nbsp;|&nbsp; 2200 N Commerce Parkway, Suite 200, Weston FL 33326 &nbsp;|&nbsp; Lic# EC1305900 &nbsp;|&nbsp; Lic# CGC1532054`;
 
-  const paymentTerms = isA
-    ? `50% deposit due upon acceptance of this proposal. Balance of 50% due upon delivery of the completed report. Additional meetings or out-of-scope requests are billed at $${RATE_OOS}.00/hr, portal-to-portal.`
-    : `A deposit equal to material cost and mobilization expenses is due upon acceptance of this proposal to allow materials to be ordered and the job scheduled. Progress payments and final balance are due at milestones agreed upon at time of acceptance. Additional meetings or out-of-scope requests are billed at $${RATE_OOS}.00/hr, portal-to-portal.`;
+  const scopeServices = S.services.map(sv => {
+    const name    = sv.name==='Custom...' ? sv.custom : sv.name;
+    const bullets = (sv.details||'').split('\n').filter(l=>l.trim())
+      .map(l=>`<p class="mdz-bullet">* ${esc(l.replace(/^\*\s*/,'').trim())}</p>`).join('');
+    return `<h3 class="mdz-sub-blue">${esc(name)}</h3>${bullets}`;
+  }).join('');
 
   return `
-    <div class="proposal-wrapper">
-      <div class="proposal-toolbar no-print">
-        <button class="btn-back" style="padding-bottom:0" onclick="back()">← Back</button>
-        <button class="btn-primary" onclick="window.print()">⬇ Save as PDF</button>
+<div class="proposal-wrapper">
+  <div class="proposal-toolbar no-print">
+    <button class="btn-back" onclick="back()">&#8592; Back</button>
+    <button class="btn-primary" onclick="window.print()">&#8659; Save as PDF</button>
+  </div>
+  <div class="mdz-doc">
+    <div class="mdz-page-footer">${footer}</div>
+
+    <!-- COVER PAGE -->
+    <div class="mdz-cover mdz-page-break-after">
+      <div class="mdz-logo-wrap">${MDZ_LOGO}</div>
+      <h1 class="mdz-cover-title">${esc(title.toUpperCase())}</h1>
+      <div class="mdz-cover-prepared">
+        <p><strong>Prepared For:</strong></p>
+        <p>${esc(S.client.name)}</p>
+        ${S.client.address ? `<p>${esc(S.client.address)}</p>` : ''}
+        <br>
+        <p>Proposal Number: ${esc(S.num)}</p>
+        <p>Date: ${esc(S.date.toUpperCase())}</p>
       </div>
+    </div>
 
-      <div class="proposal-doc">
-        <!-- COVER -->
-        <div class="prop-cover">
-          <div class="prop-cover-eyebrow">MDZ Building Inspections & Consulting</div>
-          <div class="prop-cover-title">${title}</div>
-          <div class="prop-cover-for">Prepared For</div>
-          <div class="prop-cover-client">${esc(S.client.name)}</div>
-          ${S.client.address?`<div class="prop-cover-address">${esc(S.client.address)}</div>`:''}
-          <div class="prop-cover-meta">
-            <span><strong>Proposal #</strong>${esc(S.num)}</span>
-            <span><strong>Date</strong>${esc(S.date)}</span>
-          </div>
-        </div>
+    <!-- COMPANY INFO -->
+    <div class="mdz-section">
+      <h2 class="mdz-section-head">Company Information</h2>
+      <p class="mdz-body"><strong>MDZ BUILDING INSPECTIONS &amp; CONSULTING</strong><br>
+      2200 N Commerce Parkway, Suite 200<br>
+      Weston, Florida 33326<br>
+      Lic# EC1305900 | Lic# CGC1532054</p>
+    </div>
 
-        <!-- 1. COMPANY INFO -->
-        <div class="prop-sec">
-          <div class="prop-sec-title">Company Information</div>
-          <div class="prop-company-name">${COMPANY.name}</div>
-          <div class="prop-company-detail">
-            ${COMPANY.address}<br>
-            Licenses: ${COMPANY.licenses}<br>
-            Submitted by: ${COMPANY.by}<br>
-            ${COMPANY.credentials}
-          </div>
-        </div>
+    <!-- OWNER INFO -->
+    <div class="mdz-section">
+      <h2 class="mdz-section-head">Owner Information</h2>
+      <p class="mdz-body">
+        ${esc(S.client.name)}<br>
+        ${S.client.address ? esc(S.client.address)+'<br>' : ''}
+        ${S.client.contact ? 'Contact: '+esc(S.client.contact) : ''}
+      </p>
+    </div>
 
-        <!-- 2. CLIENT INFO -->
-        <div class="prop-sec">
-          <div class="prop-sec-title">Owner / Client Information</div>
-          <strong>${esc(S.client.name)}</strong><br>
-          ${S.client.address?`<span style="white-space:pre-line">${esc(S.client.address)}</span><br>`:''}
-          ${S.client.contact?`${esc(S.client.contact)}`:''}
-        </div>
+    <!-- SCOPE -->
+    <div class="mdz-section">
+      <h2 class="mdz-section-head">Scope of Professional Services</h2>
+      ${S.projectOverview ? `
+        <h3 class="mdz-sub-blue">PROJECT OVERVIEW</h3>
+        <p class="mdz-body">${esc(S.projectOverview)}</p>` : ''}
+      <h3 class="mdz-sub-blue">SCOPE OF SERVICES</h3>
+      <p class="mdz-body">${COMPANY.name} will provide the following services:</p>
+      ${scopeServices}
+      ${S.opinionText ? `
+        <h3 class="mdz-sub-blue">PROFESSIONAL OPINION DISCUSSION</h3>
+        <p class="mdz-body">${esc(S.opinionText)}</p>` : ''}
+    </div>
 
-        <!-- 3. SCOPE -->
-        <div class="prop-sec">
-          <div class="prop-sec-title">${isA?'Scope of Professional Services':'Scope of Work'}</div>
-          ${scopeContent}
-        </div>
+    <!-- EXCLUSIONS -->
+    <div class="mdz-section">
+      <h2 class="mdz-section-head">Exclusions</h2>
+      <p class="mdz-body">This proposal does not include:</p>
+      ${excl.map(e=>`<p class="mdz-bullet">* ${esc(e)}</p>`).join('')}
+      <p class="mdz-body" style="margin-top:8px">Additional meetings requested shall be billed at $${RATE_OOS}.00 per hour, portal-to-portal.</p>
+    </div>
 
-        <!-- 4. EXCLUSIONS -->
-        <div class="prop-sec">
-          <div class="prop-sec-title">Exclusions</div>
-          <p>The following are expressly excluded from this ${isA?'proposal':'contract'} unless separately agreed in writing:</p>
-          <ul class="prop-list">${excl.map(e=>`<li>${e}</li>`).join('')}</ul>
-        </div>
+    <!-- CLIENT RESPONSIBILITIES -->
+    <div class="mdz-section">
+      <h2 class="mdz-section-head">Client Responsibilities</h2>
+      <p class="mdz-body">The client shall provide:</p>
+      ${RESP_A.map(r=>`<p class="mdz-bullet">* ${esc(r)}</p>`).join('')}
+    </div>
 
-        <!-- 5. CLIENT RESPONSIBILITIES -->
-        <div class="prop-sec">
-          <div class="prop-sec-title">Client Responsibilities</div>
-          <ul class="prop-list">${resp.map(r=>`<li>${r}</li>`).join('')}</ul>
-        </div>
+    <!-- INVESTMENT -->
+    <div class="mdz-section">
+      <h2 class="mdz-section-head">Investment</h2>
+      <table class="mdz-table">
+        <tr class="mdz-table-head">
+          <td class="mdz-td-label">Description</td>
+          <td class="mdz-td-amount">Amount</td>
+        </tr>
+        ${S.services.map(sv=>`
+        <tr>
+          <td class="mdz-td-label">${esc(sv.name==='Custom...'?sv.custom:sv.name)}</td>
+          <td class="mdz-td-amount">$${fmt(sv.fee)}</td>
+        </tr>`).join('')}
+        <tr class="mdz-total-row">
+          <td class="mdz-td-label"><strong>Total Professional Fee</strong></td>
+          <td class="mdz-td-amount"><strong>$${fmt(total)}</strong></td>
+        </tr>
+      </table>
+    </div>
 
-        <!-- 6. INVESTMENT -->
-        <div class="prop-sec">
-          <div class="prop-sec-title">Investment</div>
-          <table class="prop-table">
-            <thead>
-              <tr>
-                <th>Description</th>
-                <th>Basis</th>
-                <th style="text-align:right">Amount</th>
-              </tr>
-            </thead>
-            <tbody>${tableRows}</tbody>
-            <tfoot>
-              <tr>
-                <td colspan="2">Total ${isA?'Professional Fee':'Project Price'}</td>
-                <td>$${fmt(total)}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
+    <!-- PAYMENT TERMS -->
+    <div class="mdz-section">
+      <h2 class="mdz-section-head">Payment Terms</h2>
+      <p class="mdz-bullet">* 50% Deposit Due Upon Acceptance: $${fmt(half)}</p>
+      <p class="mdz-bullet">* 50% Balance Due Upon Delivery of Report: $${fmt(half)}</p>
+    </div>
 
-        <!-- 7. PAYMENT TERMS -->
-        <div class="prop-sec">
-          <div class="prop-sec-title">Payment Terms</div>
-          <p>${paymentTerms}</p>
-        </div>
+    <!-- ACCEPTANCE -->
+    <div class="mdz-section">
+      <h2 class="mdz-section-head">Acceptance</h2>
+      <p class="mdz-body">Respectfully Submitted,</p>
+      <br>
+      <p class="mdz-body">
+        Miguel Mendez<br>
+        Project Manager<br>
+        MDZ Building Inspections &amp; Consulting<br><br>
+        Lic. EC1305900 | Lic. CGC1532054<br><br>
+        Certified Commercial Inspector BN6469<br><br>
+        Certified Electrical Plans Examiner PX3483<br><br>
+        Level II Infrared Thermographer #275348
+      </p>
+      <br><br>
+      <div class="mdz-sig-line"></div>
+      <p class="mdz-body" style="margin-top:6px">Authorized Signature / Date</p>
+      <br>
+      <div class="mdz-sig-line"></div>
+      <p class="mdz-body" style="margin-top:6px">Printed Name / Title</p>
+    </div>
+  </div>
+</div>`;
+}
 
-        <!-- 8. ACCEPTANCE -->
-        <div class="prop-sec">
-          <div class="prop-sec-title">Acceptance</div>
-          <p>This proposal is valid for 30 days from the date above. Authorization to proceed constitutes acceptance of all terms and conditions herein.</p>
-          <div class="sig-block">
-            <div>
-              <div class="sig-line"></div>
-              <div class="sig-meta">
-                Respectfully Submitted<br>
-                <strong>Miguel Mendez</strong>, Project Manager<br>
-                ${COMPANY.name}<br>
-                ${COMPANY.licenses}
-              </div>
-            </div>
-            <div>
-              <div class="sig-line"></div>
-              <div class="sig-meta">Authorized Signature / Date</div>
-              <div class="sig-name-line"></div>
-              <div class="sig-meta">Printed Name / Title</div>
-            </div>
-          </div>
-        </div>
+// ---------- ANAMIK TEMPLATE (Mode B) ----------
+function renderProposalAnamik() {
+  const excl  = [...EXCL_B.filter((_,i)=>!S.removed.includes(i)), ...S.customExcl];
+  const total = totalB();
+  const p1    = parseFloat(S.pay1)||0;
+  const p2    = parseFloat(S.pay2)||0;
+  const p3    = parseFloat(S.pay3)||0;
+
+  const scopeLines = S.scopeText.split('\n').filter(l=>l.trim() && !l.trim().startsWith('*')).map(l=>esc(l.trim()));
+  const matLines   = S.materials.filter(m=>m.item).map(m=>`Furnish and install ${esc(m.item)}.`);
+  const drawLine   = (S.drawType!=='none' && totalDraw()>0) ? ['Electrical plans required to be processed and approved by City.'] : [];
+
+  const includedWork = [
+    'Standard insurance coverage.',
+    'Electrical fees not to exceed 3% of the contract cost.',
+    ...drawLine,
+    ...matLines,
+    ...scopeLines
+  ];
+
+  return `
+<div class="proposal-wrapper">
+  <div class="proposal-toolbar no-print">
+    <button class="btn-back" onclick="back()">&#8592; Back</button>
+    <button class="btn-primary" onclick="window.print()">&#8659; Save as PDF</button>
+  </div>
+  <div class="anamik-doc">
+
+    <!-- HEADER -->
+    <div class="anamik-header">
+      ${ANAMIK_LOGO}
+    </div>
+    <div class="anamik-divider"></div>
+
+    <p class="anamik-doc-title">CONTRACT PROPOSAL</p>
+
+    <!-- CUSTOMER + PROJECT -->
+    <div class="anamik-two-col">
+      <div>
+        <p class="anamik-label">Customer:</p>
+        <p class="anamik-addr">
+          ${esc(S.client.name)}<br>
+          ${S.client.address ? esc(S.client.address)+'<br>' : ''}
+          ${S.client.contact ? esc(S.client.contact) : ''}
+        </p>
       </div>
-    </div>`;
+      <div>
+        <p class="anamik-label">Project address:</p>
+        <p class="anamik-addr">${S.projectAddress ? esc(S.projectAddress) : esc(S.client.address||'')}</p>
+      </div>
+    </div>
+
+    <!-- OPENING PARAGRAPH -->
+    <p class="anamik-opening">We are pleased to submit a Contract proposal to perform the electrical work for the above referenced project in the amount of <strong>$${fmt(total)} (${numToWords(total)})</strong>. This proposal is based upon performance of the work as detailed in the plans and specifications listed above using the most practical and economical practices of the industry with the addition of the terms and qualifications listed below.</p>
+
+    <!-- PAYMENT SCHEDULE -->
+    ${(p1||p2||p3) ? `
+    <p class="anamik-pay-head">Payment schedule is as the following</p>
+    ${p1 ? `<p class="anamik-pay-item">($${fmt(p1)}) up front to order and purchase materials and submit plans to city</p>` : ''}
+    ${p2 ? `<p class="anamik-pay-item">($${fmt(p2)}) after the installation of materials</p>` : ''}
+    ${p3 ? `<p class="anamik-pay-item">($${fmt(p3)}) 10% after the Final Inspection.</p>` : ''}
+    ` : ''}
+
+    <!-- INCLUDED WORK -->
+    <p class="anamik-list-head">The following work is included in this proposal:</p>
+    <ol class="anamik-list">
+      ${includedWork.map(w=>`<li>${w}</li>`).join('')}
+    </ol>
+
+    <!-- NOT INCLUDED -->
+    <p class="anamik-list-head">The following work is NOT included in this proposal:</p>
+    <ol class="anamik-list">
+      ${excl.map(e=>`<li>${esc(e)}</li>`).join('')}
+    </ol>
+
+    <p class="anamik-body">Proposal is only for the above mentioned. Any other work will be done under new proposal.<br>
+    Price of materials may be subject to change based on inflation.</p>
+
+    <!-- GENERAL CONDITIONS -->
+    <p class="anamik-list-head">General Conditions:</p>
+    <ol class="anamik-list">
+      ${ANAMIK_GC.map(c=>`<li>${c}</li>`).join('')}
+    </ol>
+
+    <!-- TERMS & CONDITIONS -->
+    <p class="anamik-list-head">Terms and Conditions:</p>
+    ${ANAMIK_TERMS.map(t=>`<p class="anamik-terms-para">${t}</p>`).join('')}
+
+    <!-- SIGNATURE BLOCK -->
+    <p class="anamik-accepted">APPROVED AND ACCEPTED</p>
+    <div class="anamik-sig-block">
+      <div>
+        <p class="anamik-sig-by">By:</p>
+        <div class="anamik-sig-line"></div>
+        <p class="anamik-sig-name">Miguel Mendez &nbsp;&nbsp;&nbsp; President</p>
+      </div>
+      <div>
+        <p class="anamik-sig-by">By:</p>
+        <div class="anamik-sig-line"></div>
+        <p class="anamik-sig-name">Owner or Agent for Owner</p>
+        <p class="anamik-sig-name">Accepted _____ day of _____________, _______</p>
+      </div>
+    </div>
+  </div>
+</div>`;
 }
 
 // ============================================================
