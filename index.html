@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>MDZ Estimator</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-mdz">MDZ</span>
+        <span class="logo-sub">Estimator</span>
+      </div>
+      <button id="btn-new" class="btn-ghost btn-sm" style="display:none" onclick="confirmNew()">+ New</button>
+    </div>
+    <div id="progress-bar"><div id="progress-fill"></div></div>
+  </header>
+
+  <main id="app"></main>
+  <div id="toast" class="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
