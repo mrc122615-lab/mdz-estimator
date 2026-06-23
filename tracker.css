@@ -87,6 +87,8 @@ body {
 .label-note { font-weight: 400; color: var(--gray-500); font-size: 12px; }
 input, select, textarea {
   width: 100%;
+  min-width: 0;        /* allow inputs to shrink inside flex/cards */
+  max-width: 100%;
   font-size: 16px;
   font-family: inherit;
   color: var(--gray-800);
@@ -96,6 +98,11 @@ input, select, textarea {
   background: #fff;
   outline: none;
   transition: border-color .15s, box-shadow .15s;
+}
+/* iOS date inputs ignore width:100% by default and overflow — force them to fit */
+input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
 }
 input:focus, select:focus, textarea:focus {
   border-color: var(--blue);
@@ -335,7 +342,9 @@ button { font-family: inherit; cursor: pointer; }
 
   .form-group { margin-bottom: 12px; }
   .form-group label { margin-bottom: 5px; }
-  .form-row { gap: 10px; }
+  /* Stack paired fields full-width so nothing overflows or overlaps */
+  .form-row { gap: 0; }
+  .form-row .form-group { flex: 1 1 100%; }
   textarea { min-height: 56px; }
 
   .period-nav { gap: 8px; margin-bottom: 13px; }
