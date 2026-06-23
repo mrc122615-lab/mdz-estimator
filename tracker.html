@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Work Earnings Tracker</title>
+  <link rel="stylesheet" href="tracker.css">
+</head>
+<body>
+  <header class="app-header no-print">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-mdz">MDZ</span>
+        <span class="logo-sub">Earnings Tracker</span>
+      </div>
+    </div>
+  </header>
+
+  <main id="app" class="no-print"></main>
+
+  <!-- Printable report (hidden on screen, shown when printing / saving PDF) -->
+  <div id="report" class="report print-only"></div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="tracker.js"></script>
+</body>
+</html>
