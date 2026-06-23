@@ -177,6 +177,14 @@ function renderAddCard() {
            oninput="draft.qty=this.value;updateRateHint()">
        </div>`;
 
+  const descField = isHourly
+    ? `<div class="form-group">
+         <label>Work Completed</label>
+         <textarea placeholder="Describe the work you completed…"
+           oninput="draft.desc=this.value">${esc(draft.desc)}</textarea>
+       </div>`
+    : '';
+
   return `
     <div class="card">
       <div class="card-title">Add Work</div>
@@ -185,12 +193,6 @@ function renderAddCard() {
         <label>Date <span class="label-note">within the selected pay period</span></label>
         <input type="date" min="${esc(S.periodStart)}" max="${esc(periodEnd())}"
           value="${esc(draft.date)}" oninput="draft.date=this.value;save()">
-      </div>
-
-      <div class="form-group">
-        <label>Work Completed</label>
-        <textarea placeholder="Describe the work you completed…"
-          oninput="draft.desc=this.value">${esc(draft.desc)}</textarea>
       </div>
 
       <div class="form-row">
@@ -203,6 +205,8 @@ function renderAddCard() {
         </div>
         ${qtyField}
       </div>
+
+      ${descField}
 
       <div class="rate-hint" id="rate-hint">${rateHintText()}</div>
 
@@ -286,14 +290,14 @@ function renderTotalsCard() {
 // ------------------------------------------------------------
 function addEntry() {
   const t = JOB_TYPES[draft.type];
-  if (!draft.desc.trim()) { toast('Describe the work completed'); return; }
+  if (t.kind === 'hourly' && !draft.desc.trim())                  { toast('Describe the work completed'); return; }
   if (t.kind === 'fixed'  && (parseFloat(draft.qty)   || 0) <= 0) { toast('Enter the number of jobs'); return; }
   if (t.kind === 'hourly' && (parseFloat(draft.hours) || 0) <= 0) { toast('Enter the hours worked'); return; }
 
   S.entries.push({
     id:    'e' + Date.now(),
     date:  draft.date,
-    desc:  draft.desc.trim(),
+    desc:  t.kind === 'hourly' ? draft.desc.trim() : '',
     type:  draft.type,
     qty:   t.kind === 'fixed'  ? (parseFloat(draft.qty)   || 0) : 0,
     hours: t.kind === 'hourly' ? (parseFloat(draft.hours) || 0) : 0
