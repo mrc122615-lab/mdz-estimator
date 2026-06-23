@@ -51,6 +51,7 @@ body {
   color: var(--blue);
 }
 .logo-sub { font-size: 14px; color: var(--gray-500); font-weight: 600; }
+.btn-back-link { text-decoration: none; padding: 8px 14px; font-size: 13px; }
 
 /* ---------- Layout ---------- */
 #app {

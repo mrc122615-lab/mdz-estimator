@@ -296,6 +296,17 @@ function renderHome() {
           <div class="mode-card-arrow">→</div>
         </button>
       </div>
+
+      <div class="home-tools">
+        <a class="tool-link" href="tracker.html">
+          <span class="tool-link-icon">⏱</span>
+          <span class="tool-link-text">
+            <strong>Work Earnings Tracker</strong>
+            <span>Log hours &amp; jobs, calculate what you earned, download a PDF</span>
+          </span>
+          <span class="tool-link-arrow">→</span>
+        </a>
+      </div>
     </div>`;
 }
 
