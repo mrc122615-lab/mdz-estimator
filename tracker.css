@@ -113,6 +113,36 @@ textarea { resize: vertical; min-height: 64px; }
 }
 .rate-hint.muted { color: var(--gray-500); font-weight: 500; }
 
+/* ---------- Pay-period navigator ---------- */
+.period-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.period-range {
+  flex: 1;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--blue);
+}
+.period-arrow {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  border: 1px solid var(--gray-300);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--blue);
+  font-size: 20px;
+  line-height: 1;
+  transition: background .15s, border-color .15s;
+}
+.period-arrow:hover { background: var(--gray-50); border-color: var(--blue); }
+.period-arrow:active { background: var(--gray-100); }
+
 /* ---------- Buttons ---------- */
 button { font-family: inherit; cursor: pointer; }
 .btn-primary {

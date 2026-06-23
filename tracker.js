@@ -21,10 +21,12 @@ const COMPANY = 'MDZ Building Inspections & Consulting';
 // ------------------------------------------------------------
 // STATE
 // ------------------------------------------------------------
+const PERIOD_DAYS = 14;  // biweekly
+
 let S = {
-  worker:  '',
-  period:  '',
-  entries: []        // { id, date, desc, type, qty, hours }
+  worker:      '',
+  periodStart: '',       // ISO date (yyyy-mm-dd) — first day of the selected two-week period
+  entries:     []        // { id, date, desc, type, qty, hours }
 };
 
 function save() {
@@ -59,17 +61,18 @@ function earningsFor(entry) {
   return (parseFloat(entry.hours) || 0) * t.rate;
 }
 
-function grandTotal() {
-  return S.entries.reduce((sum, e) => sum + earningsFor(e), 0);
+function grandTotal(list) {
+  return (list || currentEntries()).reduce((sum, e) => sum + earningsFor(e), 0);
 }
 
 // Per-type breakdown: { type: { label, count/hours, amount } }
-function breakdown() {
+function breakdown(list) {
+  const entries = list || currentEntries();
   const b = {};
   for (const key in JOB_TYPES) {
     b[key] = { label: JOB_TYPES[key].label, kind: JOB_TYPES[key].kind, units: 0, amount: 0 };
   }
-  S.entries.forEach(e => {
+  entries.forEach(e => {
     const t = JOB_TYPES[e.type];
     if (!t) return;
     b[e.type].units  += t.kind === 'fixed' ? (parseFloat(e.qty) || 0) : (parseFloat(e.hours) || 0);
@@ -79,31 +82,80 @@ function breakdown() {
 }
 
 // ------------------------------------------------------------
+// BIWEEKLY PERIOD
+// ------------------------------------------------------------
+function periodEnd() { return addDays(S.periodStart, PERIOD_DAYS - 1); }
+
+// ISO yyyy-mm-dd strings compare correctly with <= / >=
+function inPeriod(iso) {
+  return !!iso && iso >= S.periodStart && iso <= periodEnd();
+}
+
+// Entries that fall inside the currently-selected two-week period, sorted by date
+function currentEntries() {
+  return S.entries.filter(e => inPeriod(e.date))
+                  .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function clampToPeriod(iso) {
+  if (!iso || iso < S.periodStart) return S.periodStart;
+  const end = periodEnd();
+  return iso > end ? end : iso;
+}
+
+function formatRange() {
+  const s = parseISO(S.periodStart);
+  const e = parseISO(periodEnd());
+  const start = s.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const end   = e.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return `${start} – ${end}`;
+}
+
+function shiftPeriod(dir) {
+  S.periodStart = addDays(S.periodStart, dir * PERIOD_DAYS);
+  draft.date = clampToPeriod(draft.date);
+  save();
+  render();
+}
+
+function setPeriodStart(iso) {
+  if (!iso) return;
+  S.periodStart = iso;
+  draft.date = clampToPeriod(draft.date);
+  save();
+  render();
+}
+
+// ------------------------------------------------------------
 // RENDER
 // ------------------------------------------------------------
 function render() {
   document.getElementById('app').innerHTML = `
-    ${renderInfoCard()}
+    ${renderPeriodCard()}
     ${renderAddCard()}
     ${renderEntriesCard()}
     ${renderTotalsCard()}
   `;
 }
 
-function renderInfoCard() {
+function renderPeriodCard() {
   return `
     <div class="card">
-      <div class="card-title">Report Info</div>
+      <div class="card-title">Pay Period (Biweekly)</div>
+      <div class="period-nav">
+        <button class="period-arrow" onclick="shiftPeriod(-1)" title="Previous two weeks">←</button>
+        <div class="period-range">${esc(formatRange())}</div>
+        <button class="period-arrow" onclick="shiftPeriod(1)" title="Next two weeks">→</button>
+      </div>
       <div class="form-row">
+        <div class="form-group">
+          <label>Period start <span class="label-note">first day of the two weeks</span></label>
+          <input type="date" value="${esc(S.periodStart)}" onchange="setPeriodStart(this.value)">
+        </div>
         <div class="form-group">
           <label>Your Name <span class="label-note">(optional)</span></label>
           <input type="text" value="${esc(S.worker)}" placeholder="e.g. Miguel Mendez"
             oninput="S.worker=this.value;save()">
-        </div>
-        <div class="form-group">
-          <label>Period / Label <span class="label-note">(optional)</span></label>
-          <input type="text" value="${esc(S.period)}" placeholder="e.g. Week of June 22"
-            oninput="S.period=this.value;save()">
         </div>
       </div>
     </div>`;
@@ -130,8 +182,9 @@ function renderAddCard() {
       <div class="card-title">Add Work</div>
 
       <div class="form-group">
-        <label>Date</label>
-        <input type="date" value="${esc(draft.date)}" oninput="draft.date=this.value;save()">
+        <label>Date <span class="label-note">within the selected pay period</span></label>
+        <input type="date" min="${esc(S.periodStart)}" max="${esc(periodEnd())}"
+          value="${esc(draft.date)}" oninput="draft.date=this.value;save()">
       </div>
 
       <div class="form-group">
@@ -176,8 +229,9 @@ function updateRateHint() {
 }
 
 function renderEntriesCard() {
-  const rows = S.entries.length
-    ? S.entries.map(e => {
+  const list = currentEntries();
+  const rows = list.length
+    ? list.map(e => {
         const t = JOB_TYPES[e.type];
         const units = t.kind === 'fixed'
           ? `${e.qty} job${(parseFloat(e.qty)||0)===1?'':'s'} × $${t.rate}`
@@ -192,11 +246,11 @@ function renderEntriesCard() {
             <button class="btn-remove" title="Remove" onclick="removeEntry('${e.id}')">✕</button>
           </div>`;
       }).join('')
-    : `<div class="empty-note">No work added yet. Add your first entry above.</div>`;
+    : `<div class="empty-note">No work in this pay period yet. Add your first entry above.</div>`;
 
   return `
     <div class="card">
-      <div class="card-title">Entries (${S.entries.length})</div>
+      <div class="card-title">Entries this period (${list.length})</div>
       ${rows}
     </div>`;
 }
@@ -214,15 +268,15 @@ function renderTotalsCard() {
 
   return `
     <div class="card">
-      <div class="card-title">Total Earned</div>
+      <div class="card-title">Total Earned — ${esc(formatRange())}</div>
       ${lines || '<div class="empty-note">$0.00</div>'}
       <div class="totals-grand">
-        <span class="label">Grand Total</span>
+        <span class="label">Period Total</span>
         <span class="amount">$${fmt(grandTotal())}</span>
       </div>
       <div class="btn-row" style="margin-top:18px">
         <button class="btn-primary btn-green" onclick="downloadPDF()">⬇ Download PDF</button>
-        <button class="btn-ghost" onclick="clearAll()">Clear All</button>
+        <button class="btn-ghost" onclick="clearPeriod()">Clear Period</button>
       </div>
     </div>`;
 }
@@ -256,10 +310,12 @@ function removeEntry(id) {
   render();
 }
 
-function clearAll() {
-  if (!S.entries.length) { toast('Nothing to clear'); return; }
-  if (!confirm('Clear all entries? This cannot be undone.')) return;
-  S.entries = [];
+function clearPeriod() {
+  const list = currentEntries();
+  if (!list.length) { toast('Nothing to clear in this period'); return; }
+  if (!confirm(`Clear all ${list.length} entr${list.length === 1 ? 'y' : 'ies'} in ${formatRange()}? This cannot be undone.`)) return;
+  const ids = new Set(list.map(e => e.id));
+  S.entries = S.entries.filter(e => !ids.has(e.id));
   save();
   render();
 }
@@ -268,15 +324,16 @@ function clearAll() {
 // PDF (print-to-PDF)
 // ------------------------------------------------------------
 function downloadPDF() {
-  if (!S.entries.length) { toast('Add at least one entry first'); return; }
+  if (!currentEntries().length) { toast('Add at least one entry in this period first'); return; }
   buildReport();
   // Give the browser a tick to lay out the report, then open the print dialog
   setTimeout(() => window.print(), 60);
 }
 
 function buildReport() {
-  const b = breakdown();
-  const rows = S.entries.map(e => {
+  const list = currentEntries();
+  const b = breakdown(list);
+  const rows = list.map(e => {
     const t = JOB_TYPES[e.type];
     const units = t.kind === 'fixed'
       ? `${e.qty} job${(parseFloat(e.qty)||0)===1?'':'s'} × $${t.rate}`
@@ -310,7 +367,7 @@ function buildReport() {
     <div class="report-meta">
       <div>
         ${S.worker ? `<strong>${esc(S.worker)}</strong><br>` : ''}
-        ${S.period ? esc(S.period) : ''}
+        <strong>Pay Period:</strong> ${esc(formatRange())}
       </div>
       <div style="text-align:right">Generated: ${esc(generated)}</div>
     </div>
@@ -328,8 +385,8 @@ function buildReport() {
       <tbody>
         ${rows}
         <tr class="grand">
-          <td colspan="4">GRAND TOTAL</td>
-          <td class="num">$${fmt(grandTotal())}</td>
+          <td colspan="4">PERIOD TOTAL</td>
+          <td class="num">$${fmt(grandTotal(list))}</td>
         </tr>
       </tbody>
     </table>
@@ -346,11 +403,31 @@ function buildReport() {
 // ------------------------------------------------------------
 // UTILITIES
 // ------------------------------------------------------------
-function today() {
-  const d = new Date();
+function isoOf(d) {
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
   return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+function today() { return isoOf(new Date()); }
+
+function parseISO(iso) {
+  const p = String(iso || '').split('-');
+  return new Date(+p[0], (+p[1] || 1) - 1, +p[2] || 1);
+}
+
+function addDays(iso, n) {
+  const d = parseISO(iso);
+  d.setDate(d.getDate() + n);
+  return isoOf(d);
+}
+
+// Monday of the week containing the given date — a sensible default period start
+function mondayOf(iso) {
+  const d = parseISO(iso);
+  const dow = d.getDay();                 // 0=Sun … 6=Sat
+  d.setDate(d.getDate() + (dow === 0 ? -6 : 1 - dow));
+  return isoOf(d);
 }
 
 function formatDate(iso) {
@@ -384,4 +461,6 @@ function toast(msg) {
 // INIT
 // ------------------------------------------------------------
 load();
+if (!S.periodStart) S.periodStart = mondayOf(today());
+draft.date = clampToPeriod(today());
 render();
