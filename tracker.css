@@ -306,6 +306,12 @@ button { font-family: inherit; cursor: pointer; }
   justify-content: space-between;
   padding: 4px 0;
 }
+.report-summary .total-hours {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid #ccc;
+  color: var(--blue);
+}
 .report-foot {
   margin-top: 36px;
   padding-top: 14px;
