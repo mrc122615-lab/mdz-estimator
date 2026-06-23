@@ -331,87 +331,83 @@ function clearPeriod() {
 }
 
 // ------------------------------------------------------------
-// PDF (print-to-PDF)
+// PDF — build a real .pdf file with jsPDF and download it directly
 // ------------------------------------------------------------
 function downloadPDF() {
-  if (!currentEntries().length) { toast('Add at least one entry in this period first'); return; }
-  buildReport();
-  // Give the browser a tick to lay out the report, then open the print dialog
-  setTimeout(() => window.print(), 60);
-}
-
-function buildReport() {
   const list = currentEntries();
-  const b = breakdown(list);
-  const rows = list.map(e => {
+  if (!list.length) { toast('Add at least one entry in this period first'); return; }
+
+  const jsPDFCtor = window.jspdf && window.jspdf.jsPDF;
+  if (!jsPDFCtor) { toast('PDF tool still loading — try again in a moment'); return; }
+
+  const doc = new jsPDFCtor({ unit: 'pt', format: 'letter' });
+  if (typeof doc.autoTable !== 'function') { toast('PDF tool still loading — try again in a moment'); return; }
+
+  const pageW   = doc.internal.pageSize.getWidth();
+  const marginX = 40;
+  let y = 52;
+
+  // Title
+  doc.setFont('helvetica', 'bold').setFontSize(18).setTextColor(26, 92, 168);
+  doc.text('WORK EARNINGS REPORT', pageW / 2, y, { align: 'center' });
+  y += 17;
+  doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(90);
+  doc.text(COMPANY, pageW / 2, y, { align: 'center' });
+  y += 26;
+
+  // Meta (worker / pay period / generated)
+  doc.setFontSize(11).setTextColor(40);
+  if (S.worker) {
+    doc.setFont('helvetica', 'bold').text(String(S.worker), marginX, y);
+    y += 15;
+  }
+  doc.setFont('helvetica', 'bold').text('Pay Period: ', marginX, y);
+  const ppW = doc.getTextWidth('Pay Period: ');
+  doc.setFont('helvetica', 'normal').text(formatRange(), marginX + ppW, y);
+
+  const generated = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  doc.text('Generated: ' + generated, pageW - marginX, y, { align: 'right' });
+  y += 16;
+
+  // Table rows
+  const body = list.map(e => {
     const t = JOB_TYPES[e.type];
     const units = t.kind === 'fixed'
-      ? `${e.qty} job${(parseFloat(e.qty)||0)===1?'':'s'} × $${t.rate}`
-      : `${e.hours||0} hr × $${t.rate}/hr`;
-    return `
-      <tr>
-        <td>${esc(formatDate(e.date))}</td>
-        <td>${esc(e.desc || t.label)}</td>
-        <td>${t.label}</td>
-        <td class="num">${units}</td>
-        <td class="num">${fmtHrs(paidHoursFor(e))}</td>
-        <td class="num">$${fmt(earningsFor(e))}</td>
-      </tr>`;
-  }).join('');
+      ? `${e.qty} job${(parseFloat(e.qty)||0)===1?'':'s'} x $${t.rate}`
+      : `${e.hours||0} hr x $${t.rate}/hr`;
+    return [
+      formatDate(e.date),
+      e.desc || t.label,
+      t.label,
+      units,
+      fmtHrs(paidHoursFor(e)),
+      '$' + fmt(earningsFor(e))
+    ];
+  });
+  body.push([
+    { content: 'PERIOD TOTAL', colSpan: 4, styles: { fontStyle: 'bold', halign: 'right' } },
+    { content: fmtHrs(totalPaidHours(list)), styles: { fontStyle: 'bold' } },
+    { content: '$' + fmt(grandTotal(list)),  styles: { fontStyle: 'bold' } }
+  ]);
 
-  const summary = Object.keys(b)
-    .filter(k => b[k].amount > 0)
-    .map(k => {
-      const u = b[k].kind === 'fixed' ? `${b[k].units} jobs` : `${b[k].units} hr`;
-      return `<div class="row"><span>${b[k].label} (${u})</span><span>$${fmt(b[k].amount)}</span></div>`;
-    }).join('');
+  doc.autoTable({
+    startY: y,
+    head: [['Date', 'Work Completed', 'Job Type', 'Detail', 'Paid Hours', 'Earned']],
+    body,
+    margin: { left: marginX, right: marginX },
+    styles: { fontSize: 9, cellPadding: 5, overflow: 'linebreak' },
+    headStyles: { fillColor: [26, 92, 168], textColor: 255, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [247, 249, 252] },
+    columnStyles: { 4: { halign: 'right' }, 5: { halign: 'right' } }
+  });
 
-  const generated = new Date().toLocaleDateString('en-US',
-    { year: 'numeric', month: 'long', day: 'numeric' });
+  // Paid Hours summary line under the table
+  let afterY = (doc.lastAutoTable ? doc.lastAutoTable.finalY : y) + 22;
+  doc.setFont('helvetica', 'bold').setFontSize(12).setTextColor(26, 92, 168);
+  doc.text('Paid Hours: ' + fmtHrs(totalPaidHours(list)) + ' hr', pageW - marginX, afterY, { align: 'right' });
 
-  document.getElementById('report').innerHTML = `
-    <div class="report-head">
-      <h1>WORK EARNINGS REPORT</h1>
-      <div class="sub">${esc(COMPANY)}</div>
-    </div>
-
-    <div class="report-meta">
-      <div>
-        ${S.worker ? `<strong>${esc(S.worker)}</strong><br>` : ''}
-        <strong>Pay Period:</strong> ${esc(formatRange())}
-      </div>
-      <div style="text-align:right">Generated: ${esc(generated)}</div>
-    </div>
-
-    <table>
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Work Completed</th>
-          <th>Job Type</th>
-          <th class="num">Detail</th>
-          <th class="num">Paid Hours</th>
-          <th class="num">Earned</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${rows}
-        <tr class="grand">
-          <td colspan="4">PERIOD TOTAL</td>
-          <td class="num">${fmtHrs(totalPaidHours(list))}</td>
-          <td class="num">$${fmt(grandTotal(list))}</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <div class="report-summary">
-      ${summary}
-      <div class="row total-hours"><span><strong>Paid Hours</strong></span><span><strong>${fmtHrs(totalPaidHours(list))} hr</strong></span></div>
-    </div>
-
-    <div class="report-foot">
-      ${esc(COMPANY)} — Generated by the Work Earnings Tracker
-    </div>`;
+  doc.save('earnings-' + (S.periodStart || 'report') + '.pdf');
+  toast('PDF downloaded');
 }
 
 // ------------------------------------------------------------
