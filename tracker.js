@@ -65,6 +65,11 @@ function grandTotal(list) {
   return (list || currentEntries()).reduce((sum, e) => sum + earningsFor(e), 0);
 }
 
+// "Paid hours" = pay divided by the $15 base rate (applies to fixed-fee jobs too)
+const PAID_HOUR_RATE = 15;
+function paidHoursFor(entry) { return earningsFor(entry) / PAID_HOUR_RATE; }
+function totalPaidHours(list) { return grandTotal(list) / PAID_HOUR_RATE; }
+
 // Per-type breakdown: { type: { label, count/hours, amount } }
 function breakdown(list) {
   const entries = list || currentEntries();
@@ -274,6 +279,7 @@ function renderTotalsCard() {
     <div class="card">
       <div class="card-title">Total Earned — ${esc(formatRange())}</div>
       ${lines || '<div class="empty-note">$0.00</div>'}
+      <div class="totals-row" style="margin-top:8px"><span>Paid Hours</span><span>${fmtHrs(totalPaidHours())} hr</span></div>
       <div class="totals-grand">
         <span class="label">Period Total</span>
         <span class="amount">$${fmt(grandTotal())}</span>
@@ -348,6 +354,7 @@ function buildReport() {
         <td>${esc(e.desc || t.label)}</td>
         <td>${t.label}</td>
         <td class="num">${units}</td>
+        <td class="num">${fmtHrs(paidHoursFor(e))}</td>
         <td class="num">$${fmt(earningsFor(e))}</td>
       </tr>`;
   }).join('');
@@ -383,6 +390,7 @@ function buildReport() {
           <th>Work Completed</th>
           <th>Job Type</th>
           <th class="num">Detail</th>
+          <th class="num">Paid Hours</th>
           <th class="num">Earned</th>
         </tr>
       </thead>
@@ -390,6 +398,7 @@ function buildReport() {
         ${rows}
         <tr class="grand">
           <td colspan="4">PERIOD TOTAL</td>
+          <td class="num">${fmtHrs(totalPaidHours(list))}</td>
           <td class="num">$${fmt(grandTotal(list))}</td>
         </tr>
       </tbody>
@@ -397,6 +406,7 @@ function buildReport() {
 
     <div class="report-summary">
       ${summary}
+      <div class="row total-hours"><span><strong>Paid Hours</strong></span><span><strong>${fmtHrs(totalPaidHours(list))} hr</strong></span></div>
     </div>
 
     <div class="report-foot">
@@ -446,6 +456,11 @@ function formatDate(iso) {
 function fmt(n) {
   return (parseFloat(n) || 0).toLocaleString('en-US',
     { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Hours, rounded to 2 decimals with trailing zeros trimmed (5, 2.5, 2.33)
+function fmtHrs(n) {
+  return String(Math.round((parseFloat(n) || 0) * 100) / 100);
 }
 
 function esc(s) {
