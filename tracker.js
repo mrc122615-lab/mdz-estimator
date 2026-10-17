@@ -62,7 +62,6 @@ const REDUCED_MOTION = !!(window.matchMedia &&
 let firstRender = true;
 let lastAddedId = null;   // entry to animate in on the next render
 let periodDir   = 0;      // -1 / +1 right after the period changes, for the slide animation
-let justPicked  = null;   // job-type chip to "pop" on the next render
 let shownTotal  = 0;      // what the hero currently displays — counted up/down to the real value
 let shownHours  = 0;
 
@@ -174,55 +173,68 @@ const ICON = {
 // ------------------------------------------------------------
 // RENDER
 // ------------------------------------------------------------
+// The page is built once. After that each section is updated in place, so
+// nothing visibly rebuilds (no flicker, no restarted background animations).
 function render() {
-  const app = document.getElementById('app');
-  // The staggered entrance only plays on the very first paint
-  app.classList.toggle('intro', firstRender && !REDUCED_MOTION);
-  app.innerHTML = `
-    ${renderHero()}
-    ${renderAddCard()}
-    ${renderEntriesCard()}
-    ${renderSummaryCard()}
-    ${renderDetailsCard()}
-  `;
-  firstRender = false;
+  if (firstRender) {
+    const rise = REDUCED_MOTION ? '' : ' rise';
+    document.getElementById('app').innerHTML = `
+      <section class="hero${rise}" id="hero" style="--i:0">${heroHTML()}</section>
+      <section class="card${rise}" id="add-card" style="--i:1">${addCardHTML()}</section>
+      <section class="card${rise}" id="entries-card" style="--i:2">${entriesHTML(true)}</section>
+      <section class="card${rise}" id="summary-card" style="--i:3">${summaryHTML()}</section>
+      <section class="card${rise}" id="details-card" style="--i:4">${detailsHTML()}</section>`;
+    firstRender = false;
+  } else {
+    updateHero();
+    syncAddCard();
+    document.getElementById('entries-card').innerHTML = entriesHTML(false);
+    document.getElementById('summary-card').innerHTML = summaryHTML();
+    syncDetails();
+  }
   animateTotals();
   lastAddedId = null;
   periodDir   = 0;
-  justPicked  = null;
 }
 
-function renderHero() {
-  const slide = periodDir > 0 ? ' slide-next' : periodDir < 0 ? ' slide-prev' : '';
+function heroHTML() {
   return `
-    <section class="hero" style="--i:0">
-      <div class="hero-glow" aria-hidden="true"></div>
-      <div class="hero-top">
-        <span class="hero-label">Pay period · biweekly</span>
-        <span class="hero-status">${esc(periodStatus())}</span>
-      </div>
-      <div class="period-nav">
-        <button class="period-arrow" onclick="shiftPeriod(-1)" aria-label="Previous two weeks">${ICON.left}</button>
-        <div class="period-range${slide}">${esc(formatRange())}</div>
-        <button class="period-arrow" onclick="shiftPeriod(1)" aria-label="Next two weeks">${ICON.right}</button>
-      </div>
-      <div class="hero-total-label">Period total</div>
-      <div class="hero-total" id="hero-total">$${fmt(shownTotal)}</div>
-      <div class="hero-chip"><span class="chip-dot"></span><span><span id="hero-hours">${fmtHrs(shownHours)}</span> paid hours</span></div>
-    </section>`;
+    <div class="hero-glow" aria-hidden="true"></div>
+    <div class="hero-top">
+      <span class="hero-label">Pay period · biweekly</span>
+      <span class="hero-status" id="hero-status">${esc(periodStatus())}</span>
+    </div>
+    <div class="period-nav">
+      <button class="period-arrow" onclick="shiftPeriod(-1)" aria-label="Previous two weeks">${ICON.left}</button>
+      <div class="period-range" id="period-range">${esc(formatRange())}</div>
+      <button class="period-arrow" onclick="shiftPeriod(1)" aria-label="Next two weeks">${ICON.right}</button>
+    </div>
+    <div class="hero-total-label">Period total</div>
+    <div class="hero-total" id="hero-total">$${fmt(shownTotal)}</div>
+    <div class="hero-chip"><span class="chip-dot"></span><span><span id="hero-hours">${fmtHrs(shownHours)}</span> paid hours</span></div>`;
 }
 
-function renderAddCard() {
+function updateHero() {
+  const range = document.getElementById('period-range');
+  range.textContent = formatRange();
+  if (periodDir && !REDUCED_MOTION) {
+    range.classList.remove('slide-next', 'slide-prev');
+    void range.offsetWidth;
+    range.classList.add(periodDir > 0 ? 'slide-next' : 'slide-prev');
+  }
+  document.getElementById('hero-status').textContent = periodStatus();
+}
+
+function addCardHTML() {
   const t = JOB_TYPES[draft.type];
   const isHourly = t.kind === 'hourly';
 
   const chips = Object.keys(JOB_TYPES).map(k => {
     const j = JOB_TYPES[k];
     const price = j.kind === 'hourly' ? `$${j.rate}/hr` : `$${j.rate}`;
-    const cls = 'type-chip' + (draft.type === k ? ' active' : '') + (justPicked === k ? ' just-picked' : '');
     return `
-      <button type="button" class="${cls}" style="--c:${j.color}" onclick="pickType('${k}')"
-        aria-pressed="${draft.type === k}">
+      <button type="button" class="type-chip${draft.type === k ? ' active' : ''}" data-type="${k}"
+        style="--c:${j.color}" onclick="pickType('${k}', this)" aria-pressed="${draft.type === k}">
         <span class="type-icon">${j.icon}</span>
         <span class="type-text">
           <span class="type-name">${j.label}</span>
@@ -232,49 +244,79 @@ function renderAddCard() {
       </button>`;
   }).join('');
 
-  const amountVal = isHourly ? draft.hours : draft.qty;
-
-  const descField = isHourly
-    ? `<div class="form-group reveal">
-         <label>Work completed</label>
-         <textarea placeholder="Describe the work you completed…"
-           oninput="draft.desc=this.value">${esc(draft.desc)}</textarea>
-       </div>`
-    : '';
-
   return `
-    <section class="card" id="add-card" style="--i:1">
-      <div class="card-head"><h2 class="card-title">Add work</h2></div>
+    <div class="card-head"><h2 class="card-title">Add work</h2></div>
 
-      <div class="form-group">
-        <label>Job type</label>
-        <div class="type-grid">${chips}</div>
+    <div class="form-group">
+      <label>Job type</label>
+      <div class="type-grid">${chips}</div>
+    </div>
+
+    <div class="form-group">
+      <label for="amount-input" id="amount-label">${isHourly ? 'Hours worked' : 'Number of jobs'}</label>
+      <div class="stepper">
+        <button type="button" class="step-btn" onclick="stepAmount(-1)" aria-label="Decrease">${ICON.minus}</button>
+        <input type="number" id="amount-input" inputmode="decimal" min="0" step="${isHourly ? '0.25' : '1'}"
+          value="${esc(isHourly ? draft.hours : draft.qty)}" placeholder="0" oninput="setAmount(this.value)">
+        <button type="button" class="step-btn" onclick="stepAmount(1)" aria-label="Increase">${ICON.plus}</button>
       </div>
+    </div>
 
-      <div class="form-group">
-        <label>${isHourly ? 'Hours worked' : 'Number of jobs'}</label>
-        <div class="stepper">
-          <button type="button" class="step-btn" onclick="stepAmount(-1)" aria-label="Decrease">${ICON.minus}</button>
-          <input type="number" id="amount-input" inputmode="decimal" min="0" step="${isHourly ? '0.25' : '1'}"
-            value="${esc(amountVal)}" placeholder="0" oninput="setAmount(this.value)">
-          <button type="button" class="step-btn" onclick="stepAmount(1)" aria-label="Increase">${ICON.plus}</button>
+    <!-- Always present; slides open only for hourly work -->
+    <div class="collapse${isHourly ? ' open' : ''}" id="desc-wrap"${isHourly ? '' : ' inert aria-hidden="true"'}>
+      <div class="collapse-inner">
+        <div class="form-group">
+          <label for="desc-input">Work completed</label>
+          <textarea id="desc-input" placeholder="Describe the work you completed…"
+            oninput="draft.desc=this.value">${esc(draft.desc)}</textarea>
         </div>
       </div>
+    </div>
 
-      ${descField}
+    <div class="form-group">
+      <label for="date-input">Date <span class="label-note">within this pay period</span></label>
+      <input type="date" id="date-input" min="${esc(S.periodStart)}" max="${esc(periodEnd())}"
+        value="${esc(draft.date)}" oninput="draft.date=this.value">
+    </div>
 
-      <div class="form-group">
-        <label>Date <span class="label-note">within this pay period</span></label>
-        <input type="date" min="${esc(S.periodStart)}" max="${esc(periodEnd())}"
-          value="${esc(draft.date)}" oninput="draft.date=this.value">
-      </div>
+    <div class="preview" id="rate-hint" style="--c:${t.color}">${rateHintHTML()}</div>
 
-      <div class="preview" id="rate-hint" style="--c:${t.color}">${rateHintHTML()}</div>
+    <button class="btn-primary btn-full btn-add" id="add-btn" onclick="addEntry()">
+      ${ICON.plus}<span>Add entry</span>
+    </button>`;
+}
 
-      <button class="btn-primary btn-full btn-add" id="add-btn" onclick="addEntry()">
-        ${ICON.plus}<span>Add entry</span>
-      </button>
-    </section>`;
+// Bring the add card in line with `draft` without rebuilding it
+function syncAddCard() {
+  const t = JOB_TYPES[draft.type];
+  const isHourly = t.kind === 'hourly';
+
+  document.querySelectorAll('#add-card .type-chip').forEach(chip => {
+    const on = chip.dataset.type === draft.type;
+    chip.classList.toggle('active', on);
+    chip.setAttribute('aria-pressed', String(on));
+  });
+
+  document.getElementById('amount-label').textContent = isHourly ? 'Hours worked' : 'Number of jobs';
+  const amount = document.getElementById('amount-input');
+  amount.step  = isHourly ? '0.25' : '1';
+  amount.value = isHourly ? draft.hours : draft.qty;
+
+  const wrap = document.getElementById('desc-wrap');
+  wrap.classList.toggle('open', isHourly);
+  wrap.toggleAttribute('inert', !isHourly);   // collapsed textarea can't be tabbed into
+  wrap.setAttribute('aria-hidden', String(!isHourly));
+  const desc = document.getElementById('desc-input');
+  if (desc.value !== draft.desc) desc.value = draft.desc;
+
+  const date = document.getElementById('date-input');
+  date.min   = S.periodStart;
+  date.max   = periodEnd();
+  date.value = draft.date;
+
+  const preview = document.getElementById('rate-hint');
+  preview.style.setProperty('--c', t.color);
+  preview.innerHTML = rateHintHTML();
 }
 
 function rateHintHTML() {
@@ -296,7 +338,8 @@ function updateRateHint() {
   restartAnimation(el, 'bump');
 }
 
-function renderEntriesCard() {
+// `intro` = first paint: rows stagger in after their card
+function entriesHTML(intro) {
   const list = currentEntries();
   const rows = list.length
     ? list.map((e, idx) => {
@@ -304,8 +347,9 @@ function renderEntriesCard() {
         const units = t.kind === 'fixed'
           ? `${e.qty} job${(parseFloat(e.qty)||0)===1?'':'s'} × $${t.rate}`
           : `${e.hours||0} hr × $${t.rate}/hr`;
+        const motion = e.id === lastAddedId ? ' entry-new' : (intro && !REDUCED_MOTION ? ' rise' : '');
         return `
-          <div class="entry${e.id === lastAddedId ? ' entry-new' : ''}" id="entry-${e.id}"
+          <div class="entry${motion}" id="entry-${e.id}"
             style="--c:${t.color};--d:${idx}">
             <div class="entry-icon">${t.icon}</div>
             <div class="entry-main">
@@ -324,16 +368,14 @@ function renderEntriesCard() {
 
   const swap = periodDir > 0 ? ' swap-next' : periodDir < 0 ? ' swap-prev' : '';
   return `
-    <section class="card" style="--i:2">
-      <div class="card-head">
-        <h2 class="card-title">Entries</h2>
-        <span class="badge">${list.length}</span>
-      </div>
-      <div class="entry-list${swap}">${rows}</div>
-    </section>`;
+    <div class="card-head">
+      <h2 class="card-title">Entries</h2>
+      <span class="badge">${list.length}</span>
+    </div>
+    <div class="entry-list${swap}">${rows}</div>`;
 }
 
-function renderSummaryCard() {
+function summaryHTML() {
   const b = breakdown();
   const total = grandTotal();
   const rows = Object.keys(b)
@@ -354,40 +396,41 @@ function renderSummaryCard() {
     }).join('');
 
   return `
-    <section class="card" style="--i:3">
-      <div class="card-head"><h2 class="card-title">Summary</h2></div>
-      ${rows || '<div class="empty-sub">Add work to see the breakdown by job type.</div>'}
-      <div class="sum-total">
-        <span>Paid hours</span>
-        <span>${fmtHrs(totalPaidHours())} hr</span>
-      </div>
-      <div class="sum-total sum-grand">
-        <span>Period total</span>
-        <span>$${fmt(total)}</span>
-      </div>
-      <div class="btn-row">
-        <button class="btn-primary" onclick="downloadPDF()">${ICON.download}<span>Download PDF</span></button>
-        <button class="btn-ghost" onclick="clearPeriod()">Clear period</button>
-      </div>
-    </section>`;
+    <div class="card-head"><h2 class="card-title">Summary</h2></div>
+    ${rows || '<div class="empty-sub">Add work to see the breakdown by job type.</div>'}
+    <div class="sum-total">
+      <span>Paid hours</span>
+      <span>${fmtHrs(totalPaidHours())} hr</span>
+    </div>
+    <div class="sum-total sum-grand">
+      <span>Period total</span>
+      <span>$${fmt(total)}</span>
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="downloadPDF()">${ICON.download}<span>Download PDF</span></button>
+      <button class="btn-ghost" onclick="clearPeriod()">Clear period</button>
+    </div>`;
 }
 
-function renderDetailsCard() {
+function detailsHTML() {
   return `
-    <section class="card" style="--i:4">
-      <div class="card-head"><h2 class="card-title">Details</h2></div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Your name <span class="label-note">shown on the PDF</span></label>
-          <input type="text" value="${esc(S.worker)}" placeholder="e.g. Miguel Mendez"
-            oninput="S.worker=this.value;save()">
-        </div>
-        <div class="form-group">
-          <label>Jump to period starting</label>
-          <input type="date" value="${esc(S.periodStart)}" onchange="setPeriodStart(this.value)">
-        </div>
+    <div class="card-head"><h2 class="card-title">Details</h2></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="name-input">Your name <span class="label-note">shown on the PDF</span></label>
+        <input type="text" id="name-input" value="${esc(S.worker)}" placeholder="e.g. Miguel Mendez"
+          oninput="S.worker=this.value;save()">
       </div>
-    </section>`;
+      <div class="form-group">
+        <label for="period-start-input">Jump to period starting</label>
+        <input type="date" id="period-start-input" value="${esc(S.periodStart)}" onchange="setPeriodStart(this.value)">
+      </div>
+    </div>`;
+}
+
+function syncDetails() {
+  const start = document.getElementById('period-start-input');
+  if (start.value !== S.periodStart) start.value = S.periodStart;
 }
 
 // ------------------------------------------------------------
@@ -442,6 +485,9 @@ function floatBurst(text, anchor, color) {
   setTimeout(() => el.remove(), 1200);
 }
 
+// iOS Safari only applies :active (instant press feedback) when a touchstart listener exists
+document.addEventListener('touchstart', () => {}, { passive: true });
+
 // Material-style ripple on tappable controls
 document.addEventListener('pointerdown', ev => {
   if (REDUCED_MOTION) return;
@@ -461,18 +507,12 @@ document.addEventListener('pointerdown', ev => {
 // ------------------------------------------------------------
 // ACTIONS
 // ------------------------------------------------------------
-function pickType(k) {
+function pickType(k, chip) {
   if (draft.type === k) return;
   draft.type = k;
-  justPicked = k;
-  // Only the add card changes, so swap just that card (keeps the rest of the page still)
-  const card = document.getElementById('add-card');
-  if (card) {
-    card.outerHTML = renderAddCard();
-    justPicked = null;
-  } else {
-    render();
-  }
+  syncAddCard();                       // toggles classes in place, so the border fades in
+  restartAnimation(chip, 'just-picked');
+  restartAnimation(document.getElementById('rate-hint'), 'bump');
 }
 
 function setAmount(v) {
