@@ -13,8 +13,10 @@
   <title>Work Earnings Tracker</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
-  <link rel="stylesheet" href="tracker.css?v=20261017a">
+  <!-- Font loads without blocking the page; system font shows until it arrives -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    media="print" onload="this.media='all'">
+  <link rel="stylesheet" href="tracker.css?v=20261017b">
 </head>
 <body>
   <header class="app-header">
@@ -30,9 +32,7 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <!-- jsPDF + AutoTable: build a real downloadable PDF (no print dialog) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-  <script src="tracker.js?v=20261017a"></script>
+  <!-- The PDF library (jsPDF) is loaded by tracker.js in the background so it never blocks the app -->
+  <script src="tracker.js?v=20261017b"></script>
 </body>
 </html>
