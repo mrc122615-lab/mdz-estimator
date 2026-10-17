@@ -552,15 +552,46 @@ function clearPeriod() {
 // ------------------------------------------------------------
 // PDF — build a real .pdf file with jsPDF and download it directly
 // ------------------------------------------------------------
-function downloadPDF() {
+const PDF_LIBS = [
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js'
+];
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('Could not load ' + src));
+    document.head.appendChild(s);
+  });
+}
+
+// Loads jsPDF + AutoTable once (in order); a failed attempt can be retried
+let pdfLibPromise = null;
+function loadPdfLib() {
+  if (window.jspdf && window.jspdf.jsPDF && window.jspdf.jsPDF.API.autoTable) return Promise.resolve();
+  if (!pdfLibPromise) {
+    pdfLibPromise = PDF_LIBS.reduce((p, src) => p.then(() => loadScript(src)), Promise.resolve())
+      .catch(err => { pdfLibPromise = null; throw err; });
+  }
+  return pdfLibPromise;
+}
+
+async function downloadPDF() {
   const list = currentEntries();
   if (!list.length) { toast('Add at least one entry in this period first'); return; }
 
-  const jsPDFCtor = window.jspdf && window.jspdf.jsPDF;
-  if (!jsPDFCtor) { toast('PDF tool still loading — try again in a moment'); return; }
+  if (!(window.jspdf && window.jspdf.jsPDF)) toast('Preparing PDF…', true);
+  try {
+    await loadPdfLib();
+  } catch (e) {
+    toast('Couldn’t load the PDF tool — check your internet and try again');
+    return;
+  }
 
-  const doc = new jsPDFCtor({ unit: 'pt', format: 'letter' });
-  if (typeof doc.autoTable !== 'function') { toast('PDF tool still loading — try again in a moment'); return; }
+  const doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'letter' });
+  if (typeof doc.autoTable !== 'function') { toast('Couldn’t load the PDF tool — try again'); return; }
 
   const pageW   = doc.internal.pageSize.getWidth();
   const marginX = 40;
@@ -702,3 +733,5 @@ load();
 if (!S.periodStart) S.periodStart = mondayOf(today());
 draft.date = clampToPeriod(today());
 render();
+// Fetch the PDF library in the background so Download PDF is instant later
+setTimeout(() => loadPdfLib().catch(() => {}), 1500);
