@@ -2,15 +2,22 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
+  <meta name="theme-color" content="#f3f4fa" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0a0d17" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Earnings">
   <title>Work Earnings Tracker</title>
-  <link rel="stylesheet" href="tracker.css?v=20260623h">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="tracker.css?v=20261017a">
 </head>
 <body>
-  <header class="app-header no-print">
+  <header class="app-header">
     <div class="header-inner">
       <div class="logo">
         <span class="logo-mdz">MDZ</span>
@@ -19,16 +26,13 @@
     </div>
   </header>
 
-  <main id="app" class="no-print"></main>
+  <main id="app"></main>
 
-  <!-- Printable report (hidden on screen, shown when printing / saving PDF) -->
-  <div id="report" class="report print-only"></div>
-
-  <div id="toast" class="toast"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <!-- jsPDF + AutoTable: build a real downloadable PDF (no print dialog) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-  <script src="tracker.js?v=20260623h"></script>
+  <script src="tracker.js?v=20261017a"></script>
 </body>
 </html>
