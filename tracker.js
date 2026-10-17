@@ -633,71 +633,212 @@ async function downloadPDF() {
   const doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'letter' });
   if (typeof doc.autoTable !== 'function') { toast('Couldn’t load the PDF tool — try again'); return; }
 
-  const pageW   = doc.internal.pageSize.getWidth();
-  const marginX = 40;
-  let y = 52;
-
-  // Title
-  doc.setFont('helvetica', 'bold').setFontSize(18).setTextColor(26, 92, 168);
-  doc.text('WORK EARNINGS REPORT', pageW / 2, y, { align: 'center' });
-  y += 17;
-  doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(90);
-  doc.text(COMPANY, pageW / 2, y, { align: 'center' });
-  y += 26;
-
-  // Meta (worker / pay period / generated)
-  doc.setFontSize(11).setTextColor(40);
-  if (S.worker) {
-    doc.setFont('helvetica', 'bold').text(String(S.worker), marginX, y);
-    y += 15;
-  }
-  doc.setFont('helvetica', 'bold').text('Pay Period: ', marginX, y);
-  const ppW = doc.getTextWidth('Pay Period: ');
-  doc.setFont('helvetica', 'normal').text(formatRange(), marginX + ppW, y);
-
-  const generated = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  doc.text('Generated: ' + generated, pageW - marginX, y, { align: 'right' });
-  y += 16;
-
-  // Table rows
-  const body = list.map(e => {
-    const t = JOB_TYPES[e.type];
-    const units = t.kind === 'fixed'
-      ? `${e.qty} job${(parseFloat(e.qty)||0)===1?'':'s'} x $${t.rate}`
-      : `${e.hours||0} hr x $${t.rate}/hr`;
-    return [
-      formatDate(e.date),
-      e.desc || t.label,
-      t.label,
-      units,
-      fmtHrs(paidHoursFor(e)),
-      '$' + fmt(earningsFor(e))
-    ];
-  });
-  body.push([
-    { content: 'PERIOD TOTAL', colSpan: 4, styles: { fontStyle: 'bold', halign: 'right' } },
-    { content: fmtHrs(totalPaidHours(list)), styles: { fontStyle: 'bold' } },
-    { content: '$' + fmt(grandTotal(list)),  styles: { fontStyle: 'bold' } }
-  ]);
-
-  doc.autoTable({
-    startY: y,
-    head: [['Date', 'Work Completed', 'Job Type', 'Detail', 'Paid Hours', 'Earned']],
-    body,
-    margin: { left: marginX, right: marginX },
-    styles: { fontSize: 9, cellPadding: 5, overflow: 'linebreak' },
-    headStyles: { fillColor: [26, 92, 168], textColor: 255, fontStyle: 'bold' },
-    alternateRowStyles: { fillColor: [247, 249, 252] },
-    columnStyles: { 4: { halign: 'right' }, 5: { halign: 'right' } }
-  });
-
-  // Paid Hours summary line under the table
-  let afterY = (doc.lastAutoTable ? doc.lastAutoTable.finalY : y) + 22;
-  doc.setFont('helvetica', 'bold').setFontSize(12).setTextColor(26, 92, 168);
-  doc.text('Paid Hours: ' + fmtHrs(totalPaidHours(list)) + ' hr', pageW - marginX, afterY, { align: 'right' });
-
+  buildPdf(doc, list);
   doc.save('earnings-' + (S.periodStart || 'report') + '.pdf');
   toast('PDF downloaded', true);
+}
+
+// Palette shared with the app (RGB arrays for jsPDF)
+const PDF = {
+  ink:    [15, 23, 42],
+  muted:  [100, 116, 139],
+  line:   [226, 231, 240],
+  soft:   [243, 244, 250],
+  accent: [79, 70, 229],
+  good:   [5, 150, 105],
+  grad:   [[67, 56, 202], [37, 99, 235], [8, 145, 178]]   // header gradient stops, same as the app hero
+};
+
+function hexRgb(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  return [n >> 16 & 255, n >> 8 & 255, n & 255];
+}
+function mixRgb(a, b, t) { return a.map((v, i) => Math.round(v + (b[i] - v) * t)); }
+
+// The built-in PDF font only covers Latin characters — drop anything else (e.g. emoji)
+function pdfSafe(s) {
+  return String(s || '').replace(/[^\x20-\x7E\xA0-\xFF–—‘’“”•…]/g, '').trim();
+}
+
+function buildPdf(doc, list) {
+  const W = doc.internal.pageSize.getWidth();
+  const H = doc.internal.pageSize.getHeight();
+  const M = 40;                                    // page margin
+  const total = grandTotal(list);
+  const hours = totalPaidHours(list);
+  const worker = pdfSafe(S.worker);
+  const generated = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+  const fill    = c => doc.setFillColor(c[0], c[1], c[2]);
+  const ink     = c => doc.setTextColor(c[0], c[1], c[2]);
+  const opacity = o => doc.setGState(new doc.GState({ opacity: o }));
+  const font    = (style, size) => doc.setFont('helvetica', style).setFontSize(size);
+  // Right-aligned letter-spaced label (jsPDF's align ignores charSpace, so place it manually)
+  const spacedRight = (str, x, y, cs) => doc.text(str, x - doc.getTextWidth(str) - cs * (str.length - 1), y, { charSpace: cs });
+
+  doc.setProperties({
+    title:   'Earnings Report — ' + formatRange(),
+    author:  worker || COMPANY,
+    creator: 'MDZ Earnings Tracker'
+  });
+
+  // ---------- Header band: 3-stop gradient, drawn as thin strips ----------
+  const bandH = 158, strips = 160;
+  for (let i = 0; i < strips; i++) {
+    const t = i / (strips - 1);
+    fill(t < .5 ? mixRgb(PDF.grad[0], PDF.grad[1], t * 2) : mixRgb(PDF.grad[1], PDF.grad[2], (t - .5) * 2));
+    doc.rect(W * i / strips, 0, W / strips + 1, bandH, 'F');
+  }
+  // Soft glows (kept inside the band)
+  opacity(.10); fill([255, 255, 255]); doc.circle(W - 40, 20, 115, 'F');
+  opacity(.07);                        doc.circle(W - 230, 138, 18, 'F');
+  opacity(.12); fill([236, 72, 153]);  doc.circle(28, 118, 38, 'F');
+  opacity(1);
+
+  // Left: brand, title, period, name
+  ink([255, 255, 255]);
+  font('bold', 12).text('MDZ', M, 42);
+  const mdzW = doc.getTextWidth('MDZ');
+  opacity(.85); font('normal', 8.5).text('EARNINGS REPORT', M + mdzW + 8, 42, { charSpace: 1.6 }); opacity(1);
+  font('bold', 25).text('Work Earnings Report', M, 78);
+  opacity(.92); font('normal', 11.5).text('Pay period  ' + formatRange(), M, 100); opacity(1);
+  let metaY = 119;
+  if (worker) { font('bold', 11).text(worker, M, metaY); metaY += 17; }
+  opacity(.75); font('normal', 9).text('Generated ' + generated, M, metaY); opacity(1);
+
+  // Right: period total + paid-hours pill
+  opacity(.8); font('normal', 8.5); spacedRight('PERIOD TOTAL', W - M, 52, 1.6); opacity(1);
+  font('bold', 32).text('$' + fmt(total), W - M, 89, { align: 'right' });
+  const pill = fmtHrs(hours) + ' paid hours';
+  font('bold', 10);
+  const pw = doc.getTextWidth(pill) + 30, ph = 22, px = W - M - pw, py = 102;
+  opacity(.2); fill([255, 255, 255]); doc.roundedRect(px, py, pw, ph, 11, 11, 'F'); opacity(1);
+  fill([167, 243, 208]); doc.circle(px + 12, py + ph / 2, 3.2, 'F');
+  ink([255, 255, 255]); doc.text(pill, px + 20, py + 14.6);
+
+  // ---------- Stat tiles ----------
+  const fixedJobs = list.filter(e => JOB_TYPES[e.type].kind === 'fixed')
+                        .reduce((s, e) => s + (parseFloat(e.qty) || 0), 0);
+  const hourlyHrs = list.filter(e => JOB_TYPES[e.type].kind === 'hourly')
+                        .reduce((s, e) => s + (parseFloat(e.hours) || 0), 0);
+  const tiles = [
+    ['ENTRIES',        String(list.length),        PDF.ink],
+    ['FIXED-FEE JOBS', String(fixedJobs),          PDF.accent],
+    ['HOURLY WORK',    fmtHrs(hourlyHrs) + ' hr',  PDF.good]
+  ];
+  let y = bandH + 20;
+  const gap = 12, tileW = (W - 2 * M - gap * (tiles.length - 1)) / tiles.length, tileH = 54;
+  tiles.forEach(([label, value, color], i) => {
+    const x = M + i * (tileW + gap);
+    fill(PDF.soft); doc.roundedRect(x, y, tileW, tileH, 10, 10, 'F');
+    ink(PDF.muted); font('bold', 7.5).text(label, x + 14, y + 20, { charSpace: .8 });
+    ink(color);     font('bold', 18).text(value, x + 14, y + 42);
+  });
+  y += tileH + 30;
+
+  // ---------- Breakdown by job type ----------
+  const section = (title, yy) => { ink(PDF.ink); font('bold', 13).text(title, M, yy); };
+  section('Breakdown by job type', y);
+  y += 16;
+  const b = breakdown(list);
+  Object.keys(b)
+    .filter(k => b[k].amount > 0)
+    .sort((a, c) => b[c].amount - b[a].amount)
+    .forEach(k => {
+      const color = hexRgb(JOB_TYPES[k].color);
+      const units = b[k].kind === 'fixed'
+        ? `${b[k].units} job${b[k].units === 1 ? '' : 's'}`
+        : `${fmtHrs(b[k].units)} hr`;
+      fill(color); doc.circle(M + 4, y + 6, 3.5, 'F');
+      ink(PDF.ink);   font('bold', 10.5).text(b[k].label, M + 14, y + 9.5);
+      const lw = doc.getTextWidth(b[k].label);
+      ink(PDF.muted); font('normal', 9.5).text(units, M + 14 + lw + 7, y + 9.5);
+      ink(PDF.ink);   font('bold', 10.5).text('$' + fmt(b[k].amount), W - M, y + 9.5, { align: 'right' });
+      const barW = W - 2 * M;
+      fill(mixRgb(color, [255, 255, 255], .84)); doc.roundedRect(M, y + 15, barW, 5, 2.5, 2.5, 'F');
+      fill(color); doc.roundedRect(M, y + 15, Math.max(5, barW * (total ? b[k].amount / total : 0)), 5, 2.5, 2.5, 'F');
+      y += 27;
+    });
+
+  // ---------- Entries table ----------
+  y += 18;
+  section('Entries', y);
+  y += 10;
+  const TYPE_COL = 1;
+  const NONE = '—';                              // fixed-fee jobs have no description
+  const typePad = { top: 7, right: 8, bottom: 7, left: 22 };   // room for the colored dot
+  doc.autoTable({
+    startY: y,
+    margin: { left: M, right: M, top: 56, bottom: 60 },
+    theme: 'plain',
+    rowPageBreak: 'avoid',
+    head: [['Date', 'Job type', 'Work completed', 'Detail', 'Paid hrs', 'Earned']],
+    body: list.map(e => {
+      const t = JOB_TYPES[e.type];
+      const units = t.kind === 'fixed'
+        ? `${e.qty} job${(parseFloat(e.qty) || 0) === 1 ? '' : 's'} × $${t.rate}`
+        : `${e.hours || 0} hr × $${t.rate}/hr`;
+      return [formatDate(e.date), t.label, pdfSafe(e.desc) || NONE, units,
+              fmtHrs(paidHoursFor(e)), '$' + fmt(earningsFor(e))];
+    }),
+    foot: [[{ content: 'Period total', colSpan: 4 }, fmtHrs(hours), '$' + fmt(total)]],
+    showHead: 'everyPage',
+    showFoot: 'lastPage',
+    styles: {
+      font: 'helvetica', fontSize: 9.5, textColor: PDF.ink, valign: 'middle', overflow: 'linebreak',
+      cellPadding: { top: 7, right: 8, bottom: 7, left: 8 }
+    },
+    headStyles: { fillColor: PDF.soft, textColor: PDF.accent, fontStyle: 'bold', fontSize: 8.5 },
+    footStyles: { fillColor: [238, 242, 255], textColor: PDF.ink, fontStyle: 'bold', fontSize: 11 },
+    columnStyles: {
+      0: { cellWidth: 72 },
+      1: { cellWidth: 130 },   // fits "Thermography Report" on one line
+      3: { cellWidth: 84, textColor: PDF.muted },
+      4: { cellWidth: 50 },
+      5: { cellWidth: 66, fontStyle: 'bold' }
+    },
+    // columnStyles only reach body cells, so align head/foot here too
+    didParseCell: d => {
+      const i = d.column.index;
+      if (i >= 4) d.cell.styles.halign = 'right';
+      if (i === TYPE_COL && d.section !== 'foot') d.cell.styles.cellPadding = typePad;
+      if (d.section === 'body' && i === 2 && d.cell.raw === NONE) d.cell.styles.textColor = PDF.line;
+      if (d.section === 'foot') {
+        if (i === 0) d.cell.styles.halign = 'right';
+        if (i === 5) d.cell.styles.textColor = PDF.good;
+      }
+    },
+    didDrawCell: d => {
+      if (d.section !== 'body') return;
+      const { x, y: cy, width, height } = d.cell;
+      doc.setDrawColor(...PDF.line).setLineWidth(.6).line(x, cy + height, x + width, cy + height);
+      if (d.column.index === TYPE_COL) {
+        fill(hexRgb(JOB_TYPES[list[d.row.index].type].color));
+        doc.circle(x + 11, cy + height / 2, 3.3, 'F');
+      }
+    },
+    didDrawPage: d => {
+      if (d.pageNumber > 1) {
+        ink(PDF.muted); font('normal', 9).text('Work Earnings Report · ' + formatRange(), M, 36);
+      }
+    }
+  });
+
+  // Note explaining paid hours
+  let noteY = doc.lastAutoTable.finalY + 20;
+  if (noteY > H - 70) { doc.addPage(); noteY = 60; }
+  ink(PDF.muted); font('normal', 8.5)
+    .text('Paid hours = earnings ÷ $' + PAID_HOUR_RATE + ' base rate (fixed-fee jobs included).', M, noteY);
+
+  // ---------- Footer on every page ----------
+  const pages = doc.getNumberOfPages();
+  for (let p = 1; p <= pages; p++) {
+    doc.setPage(p);
+    doc.setDrawColor(...PDF.line).setLineWidth(.6).line(M, H - 42, W - M, H - 42);
+    ink(PDF.muted); font('normal', 8.5);
+    doc.text(COMPANY, M, H - 26);
+    doc.text(`Page ${p} of ${pages}`, W - M, H - 26, { align: 'right' });
+  }
 }
 
 // ------------------------------------------------------------
