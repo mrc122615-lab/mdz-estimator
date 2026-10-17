@@ -6,15 +6,16 @@
 //   Thermography .......... $75 fixed per job
 //   Thermography Report ... $35 fixed per job
 //   Drone ................. $75 fixed per job
+//   Instagram Post ........ $30 fixed per post
 //   Other ................. $15 per hour
 // ============================================================
 
 const JOB_TYPES = {
-  thermography:        { label: 'Thermography',        kind: 'fixed',  rate: 75 },
-  thermography_report: { label: 'Thermography Report', kind: 'fixed',  rate: 35 },
-  drone:               { label: 'Drone',               kind: 'fixed',  rate: 75 },
-  instagram_post:      { label: 'Instagram Post',      kind: 'fixed',  rate: 30 },
-  other:               { label: 'Other (hourly)',      kind: 'hourly', rate: 15 }
+  thermography:        { label: 'Thermography',        kind: 'fixed',  rate: 75, icon: '🔥', color: '#f97316' },
+  thermography_report: { label: 'Thermography Report', kind: 'fixed',  rate: 35, icon: '📄', color: '#8b5cf6' },
+  drone:               { label: 'Drone',               kind: 'fixed',  rate: 75, icon: '🚁', color: '#0ea5e9' },
+  instagram_post:      { label: 'Instagram Post',      kind: 'fixed',  rate: 30, icon: '📸', color: '#ec4899' },
+  other:               { label: 'Other (hourly)',      kind: 'hourly', rate: 15, icon: '⏱️', color: '#10b981' }
 };
 
 const COMPANY = 'MDZ Building Inspections & Consulting';
@@ -51,6 +52,19 @@ function newDraft() {
     hours: ''
   };
 }
+
+// ------------------------------------------------------------
+// MOTION STATE
+// ------------------------------------------------------------
+const REDUCED_MOTION = !!(window.matchMedia &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+let firstRender = true;
+let lastAddedId = null;   // entry to animate in on the next render
+let periodDir   = 0;      // -1 / +1 right after the period changes, for the slide animation
+let justPicked  = null;   // job-type chip to "pop" on the next render
+let shownTotal  = 0;      // what the hero currently displays — counted up/down to the real value
+let shownHours  = 0;
 
 // ------------------------------------------------------------
 // EARNINGS MATH
@@ -117,15 +131,26 @@ function formatRange() {
   return `${start} – ${end}`;
 }
 
+// "Ends in 5 days" / "Ends today" / "Past period" / "Upcoming"
+function periodStatus() {
+  const t = today();
+  if (t > periodEnd())     return 'Past period';
+  if (t < S.periodStart)   return 'Upcoming';
+  const days = Math.round((parseISO(periodEnd()) - parseISO(t)) / 86400000);
+  return days === 0 ? 'Ends today' : `Ends in ${days} day${days === 1 ? '' : 's'}`;
+}
+
 function shiftPeriod(dir) {
   S.periodStart = addDays(S.periodStart, dir * PERIOD_DAYS);
   draft.date = clampToPeriod(draft.date);
+  periodDir = dir;
   save();
   render();
 }
 
 function setPeriodStart(iso) {
-  if (!iso) return;
+  if (!iso || iso === S.periodStart) return;
+  periodDir = iso > S.periodStart ? 1 : -1;
   S.periodStart = iso;
   draft.date = clampToPeriod(draft.date);
   save();
@@ -133,192 +158,385 @@ function setPeriodStart(iso) {
 }
 
 // ------------------------------------------------------------
+// ICONS (inline SVG so they stay crisp at any size)
+// ------------------------------------------------------------
+const ICON = {
+  left:     '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>',
+  right:    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>',
+  plus:     '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
+  minus:    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg>',
+  x:        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>',
+  download: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 19h14"/></svg>',
+  check:    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  alert:    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v5m0 3.5v.01"/><circle cx="12" cy="12" r="9"/></svg>'
+};
+
+// ------------------------------------------------------------
 // RENDER
 // ------------------------------------------------------------
 function render() {
-  document.getElementById('app').innerHTML = `
-    ${renderPeriodCard()}
+  const app = document.getElementById('app');
+  // The staggered entrance only plays on the very first paint
+  app.classList.toggle('intro', firstRender && !REDUCED_MOTION);
+  app.innerHTML = `
+    ${renderHero()}
     ${renderAddCard()}
     ${renderEntriesCard()}
-    ${renderTotalsCard()}
+    ${renderSummaryCard()}
+    ${renderDetailsCard()}
   `;
+  firstRender = false;
+  animateTotals();
+  lastAddedId = null;
+  periodDir   = 0;
+  justPicked  = null;
 }
 
-function renderPeriodCard() {
+function renderHero() {
+  const slide = periodDir > 0 ? ' slide-next' : periodDir < 0 ? ' slide-prev' : '';
   return `
-    <div class="card">
-      <div class="card-title">Pay Period (Biweekly)</div>
+    <section class="hero" style="--i:0">
+      <div class="hero-glow" aria-hidden="true"></div>
+      <div class="hero-top">
+        <span class="hero-label">Pay period · biweekly</span>
+        <span class="hero-status">${esc(periodStatus())}</span>
+      </div>
       <div class="period-nav">
-        <button class="period-arrow" onclick="shiftPeriod(-1)" title="Previous two weeks">←</button>
-        <div class="period-range">${esc(formatRange())}</div>
-        <button class="period-arrow" onclick="shiftPeriod(1)" title="Next two weeks">→</button>
+        <button class="period-arrow" onclick="shiftPeriod(-1)" aria-label="Previous two weeks">${ICON.left}</button>
+        <div class="period-range${slide}">${esc(formatRange())}</div>
+        <button class="period-arrow" onclick="shiftPeriod(1)" aria-label="Next two weeks">${ICON.right}</button>
       </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Period start <span class="label-note">first day of the two weeks</span></label>
-          <input type="date" value="${esc(S.periodStart)}" onchange="setPeriodStart(this.value)">
-        </div>
-        <div class="form-group">
-          <label>Your Name <span class="label-note">(optional)</span></label>
-          <input type="text" value="${esc(S.worker)}" placeholder="e.g. Miguel Mendez"
-            oninput="S.worker=this.value;save()">
-        </div>
-      </div>
-    </div>`;
+      <div class="hero-total-label">Period total</div>
+      <div class="hero-total" id="hero-total">$${fmt(shownTotal)}</div>
+      <div class="hero-chip"><span class="chip-dot"></span><span><span id="hero-hours">${fmtHrs(shownHours)}</span> paid hours</span></div>
+    </section>`;
 }
 
 function renderAddCard() {
   const t = JOB_TYPES[draft.type];
   const isHourly = t.kind === 'hourly';
 
-  const qtyField = isHourly
-    ? `<div class="form-group">
-         <label>Hours Worked</label>
-         <input type="number" min="0" step="0.25" value="${draft.hours}" placeholder="0"
-           oninput="draft.hours=this.value;updateRateHint()">
-       </div>`
-    : `<div class="form-group">
-         <label>Number of Jobs</label>
-         <input type="number" min="1" step="1" value="${draft.qty}" placeholder="1"
-           oninput="draft.qty=this.value;updateRateHint()">
-       </div>`;
+  const chips = Object.keys(JOB_TYPES).map(k => {
+    const j = JOB_TYPES[k];
+    const price = j.kind === 'hourly' ? `$${j.rate}/hr` : `$${j.rate}`;
+    const cls = 'type-chip' + (draft.type === k ? ' active' : '') + (justPicked === k ? ' just-picked' : '');
+    return `
+      <button type="button" class="${cls}" style="--c:${j.color}" onclick="pickType('${k}')"
+        aria-pressed="${draft.type === k}">
+        <span class="type-icon">${j.icon}</span>
+        <span class="type-text">
+          <span class="type-name">${j.label}</span>
+          <span class="type-price">${price}</span>
+        </span>
+        <span class="type-check">${ICON.check}</span>
+      </button>`;
+  }).join('');
+
+  const amountVal = isHourly ? draft.hours : draft.qty;
 
   const descField = isHourly
-    ? `<div class="form-group">
-         <label>Work Completed</label>
+    ? `<div class="form-group reveal">
+         <label>Work completed</label>
          <textarea placeholder="Describe the work you completed…"
            oninput="draft.desc=this.value">${esc(draft.desc)}</textarea>
        </div>`
     : '';
 
   return `
-    <div class="card">
-      <div class="card-title">Add Work</div>
+    <section class="card" id="add-card" style="--i:1">
+      <div class="card-head"><h2 class="card-title">Add work</h2></div>
 
       <div class="form-group">
-        <label>Date <span class="label-note">within the selected pay period</span></label>
-        <input type="date" min="${esc(S.periodStart)}" max="${esc(periodEnd())}"
-          value="${esc(draft.date)}" oninput="draft.date=this.value;save()">
+        <label>Job type</label>
+        <div class="type-grid">${chips}</div>
       </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label>Job Type</label>
-          <select onchange="draft.type=this.value;render()">
-            ${Object.keys(JOB_TYPES).map(k =>
-              `<option value="${k}"${draft.type===k?' selected':''}>${JOB_TYPES[k].label}</option>`).join('')}
-          </select>
+      <div class="form-group">
+        <label>${isHourly ? 'Hours worked' : 'Number of jobs'}</label>
+        <div class="stepper">
+          <button type="button" class="step-btn" onclick="stepAmount(-1)" aria-label="Decrease">${ICON.minus}</button>
+          <input type="number" id="amount-input" inputmode="decimal" min="0" step="${isHourly ? '0.25' : '1'}"
+            value="${esc(amountVal)}" placeholder="0" oninput="setAmount(this.value)">
+          <button type="button" class="step-btn" onclick="stepAmount(1)" aria-label="Increase">${ICON.plus}</button>
         </div>
-        ${qtyField}
       </div>
 
       ${descField}
 
-      <div class="rate-hint" id="rate-hint">${rateHintText()}</div>
+      <div class="form-group">
+        <label>Date <span class="label-note">within this pay period</span></label>
+        <input type="date" min="${esc(S.periodStart)}" max="${esc(periodEnd())}"
+          value="${esc(draft.date)}" oninput="draft.date=this.value">
+      </div>
 
-      <button class="btn-primary btn-full" style="margin-top:14px" onclick="addEntry()">+ Add Entry</button>
-    </div>`;
+      <div class="preview" id="rate-hint" style="--c:${t.color}">${rateHintHTML()}</div>
+
+      <button class="btn-primary btn-full btn-add" id="add-btn" onclick="addEntry()">
+        ${ICON.plus}<span>Add entry</span>
+      </button>
+    </section>`;
 }
 
-function rateHintText() {
+function rateHintHTML() {
   const t = JOB_TYPES[draft.type];
-  const amt = earningsFor(draft);
-  if (t.kind === 'hourly') {
-    const h = parseFloat(draft.hours) || 0;
-    return h ? `${h} hr × $${t.rate}/hr = $${fmt(amt)}`
-             : `Rate: $${t.rate} per hour`;
-  }
-  const q = parseFloat(draft.qty) || 0;
-  return q ? `${q} job${q===1?'':'s'} × $${t.rate} = $${fmt(amt)}`
-           : `Rate: $${t.rate} fixed per job`;
+  const n = parseFloat(t.kind === 'hourly' ? draft.hours : draft.qty) || 0;
+  const formula = !n
+    ? (t.kind === 'hourly' ? `$${t.rate} per hour` : `$${t.rate} per job`)
+    : t.kind === 'hourly'
+      ? `${n} hr × $${t.rate}/hr`
+      : `${n} job${n === 1 ? '' : 's'} × $${t.rate}`;
+  return `<span class="preview-formula">${formula}</span>
+          <span class="preview-amount">$${fmt(earningsFor(draft))}</span>`;
 }
 
 function updateRateHint() {
   const el = document.getElementById('rate-hint');
-  if (el) el.textContent = rateHintText();
+  if (!el) return;
+  el.innerHTML = rateHintHTML();
+  restartAnimation(el, 'bump');
 }
 
 function renderEntriesCard() {
   const list = currentEntries();
   const rows = list.length
-    ? list.map(e => {
+    ? list.map((e, idx) => {
         const t = JOB_TYPES[e.type];
         const units = t.kind === 'fixed'
           ? `${e.qty} job${(parseFloat(e.qty)||0)===1?'':'s'} × $${t.rate}`
           : `${e.hours||0} hr × $${t.rate}/hr`;
         return `
-          <div class="entry">
+          <div class="entry${e.id === lastAddedId ? ' entry-new' : ''}" id="entry-${e.id}"
+            style="--c:${t.color};--d:${idx}">
+            <div class="entry-icon">${t.icon}</div>
             <div class="entry-main">
               <div class="entry-desc">${esc(e.desc || t.label)}</div>
-              <div class="entry-meta">${esc(formatDate(e.date))} · ${t.label} · ${units}</div>
+              <div class="entry-meta">${esc(formatDate(e.date))} · ${units}</div>
             </div>
             <div class="entry-amount">$${fmt(earningsFor(e))}</div>
-            <button class="btn-remove" title="Remove" onclick="removeEntry('${e.id}')">✕</button>
+            <button class="btn-remove" aria-label="Remove entry" onclick="removeEntry('${e.id}')">${ICON.x}</button>
           </div>`;
       }).join('')
-    : `<div class="empty-note">No work in this pay period yet. Add your first entry above.</div>`;
+    : `<div class="empty-state">
+         <div class="empty-icon">✨</div>
+         <div class="empty-title">No work logged yet</div>
+         <div class="empty-sub">Entries for ${esc(formatRange())} will show up here.</div>
+       </div>`;
 
+  const swap = periodDir > 0 ? ' swap-next' : periodDir < 0 ? ' swap-prev' : '';
   return `
-    <div class="card">
-      <div class="card-title">Entries this period (${list.length})</div>
-      ${rows}
-    </div>`;
+    <section class="card" style="--i:2">
+      <div class="card-head">
+        <h2 class="card-title">Entries</h2>
+        <span class="badge">${list.length}</span>
+      </div>
+      <div class="entry-list${swap}">${rows}</div>
+    </section>`;
 }
 
-function renderTotalsCard() {
+function renderSummaryCard() {
   const b = breakdown();
-  const lines = Object.keys(b)
+  const total = grandTotal();
+  const rows = Object.keys(b)
     .filter(k => b[k].amount > 0)
     .map(k => {
+      const pct = total ? (b[k].amount / total * 100) : 0;
       const u = b[k].kind === 'fixed'
         ? `${b[k].units} job${b[k].units===1?'':'s'}`
-        : `${b[k].units} hr`;
-      return `<div class="totals-row"><span>${b[k].label} (${u})</span><span>$${fmt(b[k].amount)}</span></div>`;
+        : `${fmtHrs(b[k].units)} hr`;
+      return `
+        <div class="sum-row" style="--c:${JOB_TYPES[k].color}">
+          <div class="sum-line">
+            <span class="sum-name"><span class="dot"></span>${b[k].label}<span class="sum-units">${u}</span></span>
+            <span class="sum-amt">$${fmt(b[k].amount)}</span>
+          </div>
+          <div class="bar"><span style="--w:${pct.toFixed(1)}%"></span></div>
+        </div>`;
     }).join('');
 
   return `
-    <div class="card">
-      <div class="card-title">Total Earned — ${esc(formatRange())}</div>
-      ${lines || '<div class="empty-note">$0.00</div>'}
-      <div class="totals-row" style="margin-top:8px"><span>Paid Hours</span><span>${fmtHrs(totalPaidHours())} hr</span></div>
-      <div class="totals-grand">
-        <span class="label">Period Total</span>
-        <span class="amount">$${fmt(grandTotal())}</span>
+    <section class="card" style="--i:3">
+      <div class="card-head"><h2 class="card-title">Summary</h2></div>
+      ${rows || '<div class="empty-sub">Add work to see the breakdown by job type.</div>'}
+      <div class="sum-total">
+        <span>Paid hours</span>
+        <span>${fmtHrs(totalPaidHours())} hr</span>
       </div>
-      <div class="btn-row" style="margin-top:18px">
-        <button class="btn-primary btn-green" onclick="downloadPDF()">⬇ Download PDF</button>
-        <button class="btn-ghost" onclick="clearPeriod()">Clear Period</button>
+      <div class="sum-total sum-grand">
+        <span>Period total</span>
+        <span>$${fmt(total)}</span>
       </div>
-    </div>`;
+      <div class="btn-row">
+        <button class="btn-primary" onclick="downloadPDF()">${ICON.download}<span>Download PDF</span></button>
+        <button class="btn-ghost" onclick="clearPeriod()">Clear period</button>
+      </div>
+    </section>`;
 }
+
+function renderDetailsCard() {
+  return `
+    <section class="card" style="--i:4">
+      <div class="card-head"><h2 class="card-title">Details</h2></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Your name <span class="label-note">shown on the PDF</span></label>
+          <input type="text" value="${esc(S.worker)}" placeholder="e.g. Miguel Mendez"
+            oninput="S.worker=this.value;save()">
+        </div>
+        <div class="form-group">
+          <label>Jump to period starting</label>
+          <input type="date" value="${esc(S.periodStart)}" onchange="setPeriodStart(this.value)">
+        </div>
+      </div>
+    </section>`;
+}
+
+// ------------------------------------------------------------
+// MOTION
+// ------------------------------------------------------------
+// Count the hero total and paid hours from what's displayed to the real values
+function animateTotals() {
+  const elT = document.getElementById('hero-total');
+  const elH = document.getElementById('hero-hours');
+  const toT = grandTotal(), toH = totalPaidHours();
+  const fromT = shownTotal,  fromH = shownHours;
+  shownTotal = toT;
+  shownHours = toH;
+  cancelAnimationFrame(animateTotals.raf);
+
+  if (REDUCED_MOTION || (fromT === toT && fromH === toH)) {
+    elT.textContent = '$' + fmt(toT);
+    elH.textContent = fmtHrs(toH);
+    return;
+  }
+  restartAnimation(elT, 'ticking');
+  const start = performance.now(), dur = 750;
+  const step = now => {
+    const p = Math.min(1, (now - start) / dur);
+    const ease = 1 - Math.pow(1 - p, 3);
+    elT.textContent = '$' + fmt(fromT + (toT - fromT) * ease);
+    elH.textContent = fmtHrs(fromH + (toH - fromH) * ease);
+    if (p < 1) animateTotals.raf = requestAnimationFrame(step);
+  };
+  animateTotals.raf = requestAnimationFrame(step);
+}
+
+// Re-trigger a CSS animation class on an element
+function restartAnimation(el, cls) {
+  if (!el || REDUCED_MOTION) return;
+  el.classList.remove(cls);
+  void el.offsetWidth;
+  el.classList.add(cls);
+}
+
+// A "+$75.00" bubble that floats up from a point on screen
+function floatBurst(text, anchor, color) {
+  if (REDUCED_MOTION || !anchor) return;
+  const r = anchor.getBoundingClientRect();
+  const el = document.createElement('div');
+  el.className = 'float-burst';
+  el.textContent = text;
+  el.style.left = (r.left + r.width / 2) + 'px';
+  el.style.top  = r.top + 'px';
+  el.style.setProperty('--c', color);
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1200);
+}
+
+// Material-style ripple on tappable controls
+document.addEventListener('pointerdown', ev => {
+  if (REDUCED_MOTION) return;
+  const btn = ev.target.closest('.btn-primary, .btn-ghost, .period-arrow, .step-btn, .type-chip');
+  if (!btn) return;
+  const r = btn.getBoundingClientRect();
+  const size = Math.max(r.width, r.height) * 1.6;
+  const ink = document.createElement('span');
+  ink.className = 'ripple';
+  ink.style.width = ink.style.height = size + 'px';
+  ink.style.left = (ev.clientX - r.left - size / 2) + 'px';
+  ink.style.top  = (ev.clientY - r.top  - size / 2) + 'px';
+  btn.appendChild(ink);
+  setTimeout(() => ink.remove(), 600);
+});
 
 // ------------------------------------------------------------
 // ACTIONS
 // ------------------------------------------------------------
+function pickType(k) {
+  if (draft.type === k) return;
+  draft.type = k;
+  justPicked = k;
+  // Only the add card changes, so swap just that card (keeps the rest of the page still)
+  const card = document.getElementById('add-card');
+  if (card) {
+    card.outerHTML = renderAddCard();
+    justPicked = null;
+  } else {
+    render();
+  }
+}
+
+function setAmount(v) {
+  if (JOB_TYPES[draft.type].kind === 'hourly') draft.hours = v;
+  else draft.qty = v;
+  updateRateHint();
+}
+
+function stepAmount(dir) {
+  const hourly = JOB_TYPES[draft.type].kind === 'hourly';
+  const cur = parseFloat(hourly ? draft.hours : draft.qty) || 0;
+  const next = hourly
+    ? Math.max(0, Math.round((cur + dir * 0.5) * 100) / 100)
+    : Math.max(1, Math.round(cur + dir));
+  const input = document.getElementById('amount-input');
+  if (input) input.value = next;
+  setAmount(String(next));
+}
+
 function addEntry() {
   const t = JOB_TYPES[draft.type];
-  if (t.kind === 'hourly' && !draft.desc.trim())                  { toast('Describe the work completed'); return; }
-  if (t.kind === 'fixed'  && (parseFloat(draft.qty)   || 0) <= 0) { toast('Enter the number of jobs'); return; }
-  if (t.kind === 'hourly' && (parseFloat(draft.hours) || 0) <= 0) { toast('Enter the hours worked'); return; }
+  const btn = document.getElementById('add-btn');
+  const fail = msg => { toast(msg); restartAnimation(btn, 'shake'); };
+  if (t.kind === 'hourly' && !draft.desc.trim())                  return fail('Describe the work completed');
+  if (t.kind === 'fixed'  && (parseFloat(draft.qty)   || 0) <= 0) return fail('Enter the number of jobs');
+  if (t.kind === 'hourly' && (parseFloat(draft.hours) || 0) <= 0) return fail('Enter the hours worked');
 
-  S.entries.push({
+  const entry = {
     id:    'e' + Date.now(),
     date:  draft.date,
     desc:  t.kind === 'hourly' ? draft.desc.trim() : '',
     type:  draft.type,
     qty:   t.kind === 'fixed'  ? (parseFloat(draft.qty)   || 0) : 0,
     hours: t.kind === 'hourly' ? (parseFloat(draft.hours) || 0) : 0
-  });
+  };
+  S.entries.push(entry);
   save();
+
+  floatBurst('+$' + fmt(earningsFor(entry)), btn, t.color);
+
+  // Keep the chosen job type and date so logging several of the same job is quick
+  const keepType = draft.type, keepDate = draft.date;
   draft = newDraft();
+  draft.type = keepType;
+  draft.date = keepDate;
+
+  lastAddedId = entry.id;
   render();
-  toast('Entry added');
+  toast('Entry added', true);
 }
 
 function removeEntry(id) {
-  S.entries = S.entries.filter(e => e.id !== id);
-  save();
-  render();
+  const el = document.getElementById('entry-' + id);
+  const done = () => {
+    S.entries = S.entries.filter(e => e.id !== id);
+    save();
+    render();
+  };
+  if (!el || REDUCED_MOTION) return done();
+  if (el.classList.contains('entry-leave')) return;
+  // Pin the current height so the collapse can animate down to 0
+  el.style.height = el.offsetHeight + 'px';
+  requestAnimationFrame(() => el.classList.add('entry-leave'));
+  setTimeout(done, 340);
 }
 
 function clearPeriod() {
@@ -408,7 +626,7 @@ function downloadPDF() {
   doc.text('Paid Hours: ' + fmtHrs(totalPaidHours(list)) + ' hr', pageW - marginX, afterY, { align: 'right' });
 
   doc.save('earnings-' + (S.periodStart || 'report') + '.pdf');
-  toast('PDF downloaded');
+  toast('PDF downloaded', true);
 }
 
 // ------------------------------------------------------------
@@ -466,11 +684,15 @@ function esc(s) {
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function toast(msg) {
+// ok = true shows a green check; otherwise an amber alert
+function toast(msg, ok) {
   const t = document.getElementById('toast');
-  t.textContent = msg;
+  t.className = 'toast ' + (ok ? 'toast-ok' : 'toast-warn');
+  t.innerHTML = `<span class="toast-icon">${ok ? ICON.check : ICON.alert}</span><span>${esc(msg)}</span>`;
+  void t.offsetWidth;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2500);
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => t.classList.remove('show'), 2400);
 }
 
 // ------------------------------------------------------------
