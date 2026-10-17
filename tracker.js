@@ -13,6 +13,7 @@ const JOB_TYPES = {
   thermography:        { label: 'Thermography',        kind: 'fixed',  rate: 75 },
   thermography_report: { label: 'Thermography Report', kind: 'fixed',  rate: 35 },
   drone:               { label: 'Drone',               kind: 'fixed',  rate: 75 },
+  instagram_post:      { label: 'Instagram Post',      kind: 'fixed',  rate: 30 },
   other:               { label: 'Other (hourly)',      kind: 'hourly', rate: 15 }
 };
 
