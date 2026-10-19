@@ -2,17 +2,17 @@
 // WORK EARNINGS TRACKER — tracker.js
 // ============================================================
 //
-// Rates:
-//   Thermography .......... $75 fixed per job
-//   Thermography Report ... $35 fixed per job
+// Rates (for new entries — each entry saves the rate it was logged at):
+//   Thermography .......... $150 fixed per job
+//   Thermography Report ... $75 fixed per job
 //   Drone ................. $75 fixed per job
 //   Instagram Post ........ $30 fixed per post
 //   Other ................. $15 per hour
 // ============================================================
 
 const JOB_TYPES = {
-  thermography:        { label: 'Thermography',        kind: 'fixed',  rate: 75, icon: '🔥', color: '#f97316' },
-  thermography_report: { label: 'Thermography Report', kind: 'fixed',  rate: 35, icon: '📄', color: '#8b5cf6' },
+  thermography:        { label: 'Thermography',        kind: 'fixed',  rate: 150, icon: '🔥', color: '#f97316' },
+  thermography_report: { label: 'Thermography Report', kind: 'fixed',  rate: 75,  icon: '📄', color: '#8b5cf6' },
   drone:               { label: 'Drone',               kind: 'fixed',  rate: 75, icon: '🚁', color: '#0ea5e9' },
   instagram_post:      { label: 'Instagram Post',      kind: 'fixed',  rate: 30, icon: '📸', color: '#ec4899' },
   other:               { label: 'Other (hourly)',      kind: 'hourly', rate: 15, icon: '⏱️', color: '#10b981' }
@@ -28,8 +28,12 @@ const PERIOD_DAYS = 14;  // biweekly
 let S = {
   worker:      '',
   periodStart: '',       // ISO date (yyyy-mm-dd) — first day of the selected two-week period
-  entries:     []        // { id, date, desc, type, qty, hours }
+  entries:     []        // { id, date, desc, type, qty, hours, rate }
 };
+
+// Entries saved before rates were stored per entry were logged at these rates,
+// so a rate change doesn't re-price work that's already been recorded.
+const LEGACY_RATES = { thermography: 75, thermography_report: 35 };
 
 function save() {
   try { localStorage.setItem('earnings-tracker', JSON.stringify(S)); } catch (e) {}
@@ -39,6 +43,19 @@ function load() {
     const raw = localStorage.getItem('earnings-tracker');
     if (raw) S = Object.assign(S, JSON.parse(raw));
   } catch (e) {}
+  let migrated = false;
+  S.entries.forEach(e => {
+    if (e.rate == null && JOB_TYPES[e.type]) {
+      e.rate = LEGACY_RATES[e.type] != null ? LEGACY_RATES[e.type] : JOB_TYPES[e.type].rate;
+      migrated = true;
+    }
+  });
+  if (migrated) save();
+}
+
+// The rate an entry is paid at: its saved rate, or the current rate for the draft
+function rateOf(entry) {
+  return entry.rate != null ? entry.rate : JOB_TYPES[entry.type].rate;
 }
 
 // Draft of the entry currently being entered in the form
@@ -71,8 +88,8 @@ let shownHours  = 0;
 function earningsFor(entry) {
   const t = JOB_TYPES[entry.type];
   if (!t) return 0;
-  if (t.kind === 'fixed')  return (parseFloat(entry.qty)   || 0) * t.rate;
-  return (parseFloat(entry.hours) || 0) * t.rate;
+  if (t.kind === 'fixed')  return (parseFloat(entry.qty)   || 0) * rateOf(entry);
+  return (parseFloat(entry.hours) || 0) * rateOf(entry);
 }
 
 function grandTotal(list) {
@@ -345,8 +362,8 @@ function entriesHTML(intro) {
     ? list.map((e, idx) => {
         const t = JOB_TYPES[e.type];
         const units = t.kind === 'fixed'
-          ? `${e.qty} job${(parseFloat(e.qty)||0)===1?'':'s'} × $${t.rate}`
-          : `${e.hours||0} hr × $${t.rate}/hr`;
+          ? `${e.qty} job${(parseFloat(e.qty)||0)===1?'':'s'} × $${rateOf(e)}`
+          : `${e.hours||0} hr × $${rateOf(e)}/hr`;
         const motion = e.id === lastAddedId ? ' entry-new' : (intro && !REDUCED_MOTION ? ' rise' : '');
         return `
           <div class="entry${motion}" id="entry-${e.id}"
@@ -546,7 +563,8 @@ function addEntry() {
     desc:  t.kind === 'hourly' ? draft.desc.trim() : '',
     type:  draft.type,
     qty:   t.kind === 'fixed'  ? (parseFloat(draft.qty)   || 0) : 0,
-    hours: t.kind === 'hourly' ? (parseFloat(draft.hours) || 0) : 0
+    hours: t.kind === 'hourly' ? (parseFloat(draft.hours) || 0) : 0,
+    rate:  t.rate
   };
   S.entries.push(entry);
   save();
@@ -776,8 +794,8 @@ function buildPdf(doc, list) {
     body: list.map(e => {
       const t = JOB_TYPES[e.type];
       const units = t.kind === 'fixed'
-        ? `${e.qty} job${(parseFloat(e.qty) || 0) === 1 ? '' : 's'} × $${t.rate}`
-        : `${e.hours || 0} hr × $${t.rate}/hr`;
+        ? `${e.qty} job${(parseFloat(e.qty) || 0) === 1 ? '' : 's'} × $${rateOf(e)}`
+        : `${e.hours || 0} hr × $${rateOf(e)}/hr`;
       return [formatDate(e.date), t.label, pdfSafe(e.desc) || NONE, units,
               fmtHrs(paidHoursFor(e)), '$' + fmt(earningsFor(e))];
     }),
