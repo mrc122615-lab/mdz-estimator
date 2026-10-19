@@ -6,7 +6,7 @@
 //   Thermography .......... $150 fixed per job
 //   Thermography Report ... $75 fixed per job
 //   Drone ................. $75 fixed per job
-//   Instagram Post ........ $30 fixed per post
+//   Social Media Mgmt ..... $250 fixed per job
 //   Other ................. $15 per hour
 // ============================================================
 
@@ -14,7 +14,8 @@ const JOB_TYPES = {
   thermography:        { label: 'Thermography',        kind: 'fixed',  rate: 150, icon: '🔥', color: '#f97316' },
   thermography_report: { label: 'Thermography Report', kind: 'fixed',  rate: 75,  icon: '📄', color: '#8b5cf6' },
   drone:               { label: 'Drone',               kind: 'fixed',  rate: 75, icon: '🚁', color: '#0ea5e9' },
-  instagram_post:      { label: 'Instagram Post',      kind: 'fixed',  rate: 30, icon: '📸', color: '#ec4899' },
+  // key kept as instagram_post so entries saved under the old name carry over
+  instagram_post:      { label: 'Social Media Management', kind: 'fixed', rate: 250, icon: '📱', color: '#ec4899' },
   other:               { label: 'Other (hourly)',      kind: 'hourly', rate: 15, icon: '⏱️', color: '#10b981' }
 };
 
@@ -33,7 +34,7 @@ let S = {
 
 // Entries saved before rates were stored per entry were logged at these rates,
 // so a rate change doesn't re-price work that's already been recorded.
-const LEGACY_RATES = { thermography: 75, thermography_report: 35 };
+const LEGACY_RATES = { thermography: 75, thermography_report: 35, instagram_post: 30 };
 
 function save() {
   try { localStorage.setItem('earnings-tracker', JSON.stringify(S)); } catch (e) {}
@@ -809,9 +810,9 @@ function buildPdf(doc, list) {
     headStyles: { fillColor: PDF.soft, textColor: PDF.accent, fontStyle: 'bold', fontSize: 8.5 },
     footStyles: { fillColor: [238, 242, 255], textColor: PDF.ink, fontStyle: 'bold', fontSize: 11 },
     columnStyles: {
-      0: { cellWidth: 72 },
-      1: { cellWidth: 130 },   // fits "Thermography Report" on one line
-      3: { cellWidth: 84, textColor: PDF.muted },
+      0: { cellWidth: 70 },
+      1: { cellWidth: 144 },   // fits "Social Media Management" (112pt) + dot padding on one line
+      3: { cellWidth: 88, textColor: PDF.muted },   // fits e.g. "10.25 hr × $15/hr"
       4: { cellWidth: 50 },
       5: { cellWidth: 66, fontStyle: 'bold' }
     },
